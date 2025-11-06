@@ -1,0 +1,223 @@
+<mujoco model="robco">
+  <include file="base.xml"/>
+  <default>
+    <default class="robot">
+      <default class="motor">
+        <joint />
+        <motor />
+      </default>
+      <default class="visual">
+        <geom material="visualgeom" contype="1" conaffinity="0" group="2" />
+      </default>
+      <default class="collision">
+        <geom material="collision_material" condim="3" contype="1" conaffinity="1" priority="1" group="1" solref="0.005 1" solimp="0.99 0.999 1e-05" friction="1 0.01 0.01" />
+      </default>
+    </default>
+  </default>
+
+  <compiler angle="radian" />
+
+  <asset>
+    <material name="default_material" rgba="0.7 0.7 0.7 1" />
+  <!-- Baby-blue material for C86 meshes -->
+  <material name="C86_material" rgba="0.54 0.81 0.94 1" />
+  <!-- Default visual material used by <default class="visual"> entries. Set as fallback to baby-blue so geoms without explicit material also show baby-blue. -->
+  <material name="visualgeom" rgba="0.54 0.81 0.94 1" />
+    <material name="collision_material" rgba="1.0 0.28 0.1 0.9" />
+    <mesh name="BD116_proximal_part_convdec.stl" file="urdf/BD116_proximal_part_convdec.stl" maxhullvert="4"/>
+    <mesh name="BD116-proximal.obj" file="urdf/BD116-proximal.obj" maxhullvert="4"/>
+    <mesh name="BD116_distal_part_convdec.stl" file="urdf/BD116_distal_part_convdec.stl" maxhullvert="4"/>
+    <mesh name="BD116-distal.obj" file="urdf/BD116-distal.obj" maxhullvert="4"/>
+    <mesh name="C116_convdec.stl" file="urdf/C116_convdec.stl" maxhullvert="4"/>
+    <mesh name="C116.stl" file="urdf/C116.stl" maxhullvert="4"/>
+    <mesh name="D116-876.0002-G-proximal_convdec.stl" file="urdf/D116-876.0002-G-proximal_convdec.stl" maxhullvert="4"/>
+    <mesh name="D116-G-proximal.obj" file="urdf/D116-G-proximal.obj" maxhullvert="4"/>
+    <mesh name="D116-876.0002-G-distal_convdec.stl" file="urdf/D116-876.0002-G-distal_convdec.stl" maxhullvert="4"/>
+    <mesh name="D116-G-distal.obj" file="urdf/D116-G-distal.obj" maxhullvert="4"/>
+    <mesh name="L116-500_convdec.stl" file="urdf/L116-500_convdec.stl" maxhullvert="4"/>
+    <mesh name="L116-500.obj" file="urdf/L116-500.obj" maxhullvert="4"/>
+    <mesh name="C86_convdec.stl" file="urdf/C86_convdec.stl" maxhullvert="4"/>
+    <mesh name="C86.stl" file="urdf/C86.stl" maxhullvert="4"/>
+    <mesh name="D86-876.0001-H-proximal_convdec.stl" file="urdf/D86-876.0001-H-proximal_convdec.stl" maxhullvert="4"/>
+    <mesh name="D86-H-proximal.obj" file="urdf/D86-H-proximal.obj" maxhullvert="4"/>
+    <mesh name="D86-876.0001-H-distal_convdec.stl" file="urdf/D86-876.0001-H-distal_convdec.stl" maxhullvert="4"/>
+    <mesh name="D86-H-distal.obj" file="urdf/D86-H-distal.obj" maxhullvert="4"/>
+    <mesh name="C86.obj" file="urdf/C86.obj" maxhullvert="4"/>
+    <mesh name="I86-400_convdec.stl" file="urdf/I86-400_convdec.stl" maxhullvert="4"/>
+    <mesh name="I86-400.obj" file="urdf/I86-400.obj" maxhullvert="4"/>
+    <mesh name="E86-IO-ISO50.stl" file="urdf/E86-IO-ISO50.stl" maxhullvert="4"/>
+  </asset>
+
+  <worldbody>
+    <body name="joint0" pos="0.00000000 0.00000000 0.00000000" quat="1 0 0 0" childclass="robot">
+  <!-- Fixed base: no joint element -> body is welded to the world (compatible with older MuJoCo versions) -->
+      <geom name="joint0_collision" pos="0 0 0" quat="1 0 0 0" type="mesh" mesh="BD116_proximal_part_convdec.stl" class="collision" />
+      <geom name="joint0_visual" pos="0 0 0" quat="1 0 0 0" material="default_material" type="mesh" mesh="BD116-proximal.obj" class="visual" />
+      <body name="joint0_shaft" pos="0 0 0.1887" quat="1.0 0.0 0.0 0.0">
+        <body name="joint0_distal" pos="0 0 0" quat="1.0 0.0 0.0 0.0">
+          <joint name="joint0_joint" type="hinge" ref="0.0" class="motor" range="-4.7124 4.7124" axis="0 0 1" />
+          <inertial pos="-8e-06 1e-05 -0.1098723" quat="1.0 0.0 0.0 0.0" mass="0.375" diaginertia="0.0016854 0.0016853 0.0004321" />
+          <geom name="joint0_distal_collision" pos="0 0 0" quat="1 0 0 0" type="mesh" mesh="BD116_distal_part_convdec.stl" class="collision" />
+          <geom name="joint0_distal_visual" pos="0 0 0" quat="1 0 0 0" material="default_material" type="mesh" mesh="BD116-distal.obj" class="visual" />
+          <body name="link0" pos="0 0 0" quat="1 0 0 0">
+            <inertial pos="0 0 0" quat="1.0 0.0 0.0 0.0" mass="0.1932" diaginertia="0.000273 0.000273 0.0005344" />
+            <geom name="link0_collision" pos="0 0 0" quat="1 0 0 0" type="mesh" mesh="C116_convdec.stl" class="collision" />
+            <geom name="link0_visual" pos="0 0 0" quat="1 0 0 0" material="default_material" type="mesh" mesh="C116.stl" class="visual" />
+            <body name="joint1" pos="0 0 0" quat="1.0 0.0 0.0 0.0">
+              <inertial pos="0.0072024 0.0003068 0.0734292" quat="1.0 0.0 0.0 0.0" mass="3.594" diaginertia="0.0280533 0.0290088 0.0079424" />
+              <geom name="joint1_collision" pos="0 0 0" quat="1 0 0 0" type="mesh" mesh="D116-876.0002-G-proximal_convdec.stl" class="collision" />
+              <geom name="joint1_visual" pos="0 0 0" quat="1 0 0 0" material="default_material" type="mesh" mesh="D116-G-proximal.obj" class="visual" />
+              <body name="joint1_shaft" pos="0 0 0.082" quat="0.5000000000000001 0.5 0.4999999999999999 0.5">
+                <body name="joint1_distal" pos="0 0 0.0702" quat="0.7071067811865476 0.0 0.0 0.7071067811865475">
+                  <joint name="joint1_joint" type="hinge" ref="0.0" class="motor" range="-4.7124 4.7124" axis="0 0 1" />
+                  <inertial pos="-8e-06 1e-05 -0.0396723" quat="1.0 0.0 0.0 0.0" mass="0.375" diaginertia="0.0016854 0.0016853 0.0004321" />
+                  <geom name="joint1_distal_collision" pos="0 0 0" quat="1 0 0 0" type="mesh" mesh="D116-876.0002-G-distal_convdec.stl" class="collision" />
+                  <geom name="joint1_distal_visual" pos="0 0 0" quat="1 0 0 0" material="default_material" type="mesh" mesh="D116-G-distal.obj" class="visual" />
+                  <body name="link1" pos="0 0 0" quat="1 0 0 0">
+                    <inertial pos="0 0 0" quat="1.0 0.0 0.0 0.0" mass="0.1932" diaginertia="0.000273 0.000273 0.0005344" />
+                    <geom name="link1_collision" pos="0 0 0" quat="1 0 0 0" type="mesh" mesh="C116_convdec.stl" class="collision" />
+                    <geom name="link1_visual" pos="0 0 0" quat="1 0 0 0" material="default_material" type="mesh" mesh="C116.stl" class="visual" />
+                    <body name="link2" pos="0 0 0" quat="1.0 0.0 0.0 0.0">
+                      <inertial pos="0.2118139 0 0.0592073" quat="1.0 0.0 0.0 0.0" mass="2.2800848" diaginertia="0.0127649 0.1922432 0.1839478" />
+                      <geom name="link2_collision" pos="0 0 0" quat="1 0 0 0" type="mesh" mesh="L116-500_convdec.stl" class="collision" />
+                      <geom name="link2_visual" pos="0 0 0" quat="1 0 0 0" material="default_material" type="mesh" mesh="L116-500.obj" class="visual" />
+                      <body name="link3" pos="0.5 0 0.068" quat="0.7071067811865476 0.0 0.7071067811865475 0.0">
+                        <inertial pos="0 0 0" quat="1.0 0.0 0.0 0.0" mass="0.1168" diaginertia="9.22e-05 9.22e-05 0.0001773" />
+                        <geom name="link3_collision" pos="0 0 0" quat="1 0 0 0" type="mesh" mesh="C86_convdec.stl" class="collision" />
+                        <geom name="link3_visual" pos="0 0 0" quat="1 0 0 0" material="C86_material" type="mesh" mesh="C86.stl" class="visual" />
+                        <body name="joint2" pos="0 0 0" quat="1.0 0.0 0.0 0.0">
+                          <inertial pos="-0.00188062 0.00025219 0.0583335" quat="1.0 0.0 0.0 0.0" mass="1.777" diaginertia="0.008585 0.00939383 0.00272493" />
+                          <geom name="joint2_collision" pos="0 0 0" quat="1 0 0 0" type="mesh" mesh="D86-876.0001-H-proximal_convdec.stl" class="collision" />
+                          <geom name="joint2_visual" pos="0 0 0" quat="1 0 0 0" material="default_material" type="mesh" mesh="D86-H-proximal.obj" class="visual" />
+                          <body name="joint2_shaft" pos="0 0 0.064" quat="0.5000000000000001 0.5 0.4999999999999999 0.5">
+                            <body name="joint2_distal" pos="0 0 0.0552" quat="0.7071067811865476 0.0 0.0 0.7071067811865475">
+                              <joint name="joint2_joint" type="hinge" ref="0.0" class="motor" range="-4.7124 4.7124" axis="0 0 1" />
+                              <inertial pos="0 0 -0.0254142" quat="1.0 0.0 0.0 0.0" mass="0.177" diaginertia="0.00035144 0.00035151 0.00012592" />
+                              <geom name="joint2_distal_collision" pos="0 0 0" quat="1 0 0 0" type="mesh" mesh="D86-876.0001-H-distal_convdec.stl" class="collision" />
+                              <geom name="joint2_distal_visual" pos="0 0 0" quat="1 0 0 0" material="default_material" type="mesh" mesh="D86-H-distal.obj" class="visual" />
+                              <body name="link4" pos="0 0 0" quat="1 0 0 0">
+                                <inertial pos="0 0 0" quat="1.0 0.0 0.0 0.0" mass="0.1168" diaginertia="9.22e-05 9.22e-05 0.0001773" />
+                                <geom name="link4_collision" pos="0 0 0" quat="1 0 0 0" type="mesh" mesh="C86_convdec.stl" class="collision" />
+                                <geom name="link4_visual" pos="0 0 0" quat="1 0 0 0" material="C86_material" type="mesh" mesh="C86.stl" class="visual" />
+                                <body name="joint3" pos="0 0 0" quat="1.0 0.0 0.0 0.0">
+                                  <inertial pos="-0.00188062 0.00025219 0.0583335" quat="1.0 0.0 0.0 0.0" mass="1.777" diaginertia="0.008585 0.00939383 0.00272493" />
+                                  <geom name="joint3_collision" pos="0 0 0" quat="1 0 0 0" type="mesh" mesh="D86-876.0001-H-proximal_convdec.stl" class="collision" />
+                                  <geom name="joint3_visual" pos="0 0 0" quat="1 0 0 0" material="default_material" type="mesh" mesh="D86-H-proximal.obj" class="visual" />
+                                  <body name="joint3_shaft" pos="0 0 0.064" quat="0.5000000000000001 0.5 0.4999999999999999 0.5">
+                                    <body name="joint3_distal" pos="0 0 0.0552" quat="0.7071067811865476 0.0 0.0 0.7071067811865475">
+                                      <joint name="joint3_joint" type="hinge" ref="0.0" class="motor" range="-4.7124 4.7124" axis="0 0 1" />
+                                      <inertial pos="0 0 -0.0254142" quat="1.0 0.0 0.0 0.0" mass="0.177" diaginertia="0.00035144 0.00035151 0.00012592" />
+                                      <geom name="joint3_distal_collision" pos="0 0 0" quat="1 0 0 0" type="mesh" mesh="D86-876.0001-H-distal_convdec.stl" class="collision" />
+                                      <geom name="joint3_distal_visual" pos="0 0 0" quat="1 0 0 0" material="default_material" type="mesh" mesh="D86-H-distal.obj" class="visual" />
+                                      <body name="link5" pos="0 0 0" quat="1 0 0 0">
+                                        <inertial pos="0 0 0" quat="1.0 0.0 0.0 0.0" mass="0.1168" diaginertia="9.22e-05 9.22e-05 0.0001773" />
+                                        <geom name="link5_collision" pos="0 0 0" quat="1 0 0 0" type="mesh" mesh="C86_convdec.stl" class="collision" />
+                                        <geom name="link5_visual" pos="0 0 0" quat="1 0 0 0" material="C86_material" type="mesh" mesh="C86.obj" class="visual" />
+                                        <body name="link6" pos="0 0 0" quat="1.0 0.0 0.0 0.0">
+                                          <inertial pos="1.01e-05 -1e-05 0.2013692" quat="1.0 0.0 0.0 0.0" mass="1.2" diaginertia="0.0637213 0.0637211 0.0010042" />
+                                          <geom name="link6_collision" pos="0 0 0" quat="1 0 0 0" type="mesh" mesh="I86-400_convdec.stl" class="collision" />
+                                          <geom name="link6_visual" pos="0 0 0" quat="1 0 0 0" material="default_material" type="mesh" mesh="I86-400.obj" class="visual" />
+                                          <body name="link7" pos="0 0 0.4" quat="1.0 0.0 0.0 0.0">
+                                            <inertial pos="0 0 0" quat="1.0 0.0 0.0 0.0" mass="0.1168" diaginertia="9.22e-05 9.22e-05 0.0001773" />
+                                            <geom name="link7_collision" pos="0 0 0" quat="1 0 0 0" type="mesh" mesh="C86_convdec.stl" class="collision" />
+                                            <geom name="link7_visual" pos="0 0 0" quat="1 0 0 0" material="C86_material" type="mesh" mesh="C86.stl" class="visual" />
+                                            <body name="joint4" pos="0 0 0" quat="1.0 0.0 0.0 0.0">
+                                              <inertial pos="-0.00188062 0.00025219 0.0583335" quat="1.0 0.0 0.0 0.0" mass="1.777" diaginertia="0.008585 0.00939383 0.00272493" />
+                                              <geom name="joint4_collision" pos="0 0 0" quat="1 0 0 0" type="mesh" mesh="D86-876.0001-H-proximal_convdec.stl" class="collision" />
+                                              <geom name="joint4_visual" pos="0 0 0" quat="1 0 0 0" material="default_material" type="mesh" mesh="D86-H-proximal.obj" class="visual" />
+                                              <body name="joint4_shaft" pos="0 0 0.064" quat="0.5000000000000001 0.5 0.4999999999999999 0.5">
+                                                <body name="joint4_distal" pos="0 0 0.0552" quat="0.7071067811865476 0.0 0.0 0.7071067811865475">
+                                                  <joint name="joint4_joint" type="hinge" ref="0.0" class="motor" range="-4.7124 4.7124" axis="0 0 1" />
+                                                  <inertial pos="0 0 -0.0254142" quat="1.0 0.0 0.0 0.0" mass="0.177" diaginertia="0.00035144 0.00035151 0.00012592" />
+                                                  <geom name="joint4_distal_collision" pos="0 0 0" quat="1 0 0 0" type="mesh" mesh="D86-876.0001-H-distal_convdec.stl" class="collision" />
+                                                  <geom name="joint4_distal_visual" pos="0 0 0" quat="1 0 0 0" material="default_material" type="mesh" mesh="D86-H-distal.obj" class="visual" />
+                                                  <body name="link8" pos="0 0 0" quat="1 0 0 0">
+                                                    <inertial pos="0 0 0" quat="1.0 0.0 0.0 0.0" mass="0.1168" diaginertia="9.22e-05 9.22e-05 0.0001773" />
+                                                    <geom name="link8_collision" pos="0 0 0" quat="1 0 0 0" type="mesh" mesh="C86_convdec.stl" class="collision" />
+                                                    <geom name="link8_visual" pos="0 0 0" quat="1 0 0 0" material="C86_material" type="mesh" mesh="C86.stl" class="visual" />
+                                                    <body name="joint5" pos="0 0 0" quat="1.0 0.0 0.0 0.0">
+                                                      <inertial pos="-0.00188062 0.00025219 0.0583335" quat="1.0 0.0 0.0 0.0" mass="1.777" diaginertia="0.008585 0.00939383 0.00272493" />
+                                                      <geom name="joint5_collision" pos="0 0 0" quat="1 0 0 0" type="mesh" mesh="D86-876.0001-H-proximal_convdec.stl" class="collision" />
+                                                      <geom name="joint5_visual" pos="0 0 0" quat="1 0 0 0" material="default_material" type="mesh" mesh="D86-H-proximal.obj" class="visual" />
+                                                      <body name="joint5_shaft" pos="0 0 0.064" quat="0.5000000000000001 0.5 0.4999999999999999 0.5">
+                                                        <body name="joint5_distal" pos="0 0 0.0552" quat="0.7071067811865476 0.0 0.0 0.7071067811865475">
+                                                          <joint name="joint5_joint" type="hinge" ref="0.0" class="motor" range="-4.7124 4.7124" axis="0 0 1" />
+                                                          <inertial pos="0 0 -0.0254142" quat="1.0 0.0 0.0 0.0" mass="0.177" diaginertia="0.00035144 0.00035151 0.00012592" />
+                                                          <geom name="joint5_distal_collision" pos="0 0 0" quat="1 0 0 0" type="mesh" mesh="D86-876.0001-H-distal_convdec.stl" class="collision" />
+                                                          <geom name="joint5_distal_visual" pos="0 0 0" quat="1 0 0 0" material="default_material" type="mesh" mesh="D86-H-distal.obj" class="visual" />
+                                                          <body name="link9" pos="0 0 0" quat="1 0 0 0">
+                                                            <inertial pos="0 0 0" quat="1.0 0.0 0.0 0.0" mass="0.1168" diaginertia="9.22e-05 9.22e-05 0.0001773" />
+                                                            <geom name="link9_collision" pos="0 0 0" quat="1 0 0 0" type="mesh" mesh="C86_convdec.stl" class="collision" />
+                                                            <geom name="link9_visual" pos="0 0 0" quat="1 0 0 0" material="C86_material" type="mesh" mesh="C86.stl" class="visual" />
+                                                            <body name="tool" pos="0 0 0" quat="1.0 0.0 0.0 0.0">
+                                                              <inertial pos="0.00013211 0.00035272 0.03680274" quat="1.0 0.0 0.0 0.0" mass="0.47903106" diaginertia="0.00118607 0.00114246 0.00057065" />
+                                                              <geom name="tool_visual" pos="0 0 0" quat="1 0 0 0" material="default_material" type="mesh" mesh="E86-IO-ISO50.stl" class="visual" />
+                                                            </body>
+                                                          </body>
+                                                        </body>
+                                                      </body>
+                                                    </body>
+                                                  </body>
+                                                </body>
+                                              </body>
+                                            </body>
+                                          </body>
+                                        </body>
+                                      </body>
+                                    </body>
+                                  </body>
+                                </body>
+                              </body>
+                            </body>
+                          </body>
+                        </body>
+                      </body>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+      <site name="joint0_site" pos="0 0 0" quat="1 0 0 0" />
+      <camera name="front_camera" mode="track" fovy="90.0" quat="4.329780281177467e-17 4.329780281177466e-17 0.7071067811865475 0.7071067811865476" pos="0.0 2.0 0.5" />
+      <camera name="side_camera" mode="track" fovy="90.0" quat="-0.5 -0.4999999999999999 0.5 0.5000000000000001" pos="-2.0 0.0 0.5" />
+    </body>
+  </worldbody>
+
+  <actuator>
+    <motor name="joint0_joint_ctrl" joint="joint0_joint" class="motor" />
+    <motor name="joint1_joint_ctrl" joint="joint1_joint" class="motor" />
+    <motor name="joint2_joint_ctrl" joint="joint2_joint" class="motor" />
+    <motor name="joint3_joint_ctrl" joint="joint3_joint" class="motor" />
+    <motor name="joint4_joint_ctrl" joint="joint4_joint" class="motor" />
+    <motor name="joint5_joint_ctrl" joint="joint5_joint" class="motor" />
+  </actuator>
+
+  <contact>
+    <exclude body1="joint0_distal" body2="link0" />
+    <exclude body1="link0" body2="joint1" />
+    <exclude body1="joint1_distal" body2="link1" />
+    <exclude body1="link1" body2="link2" />
+    <exclude body1="link2" body2="link3" />
+    <exclude body1="link3" body2="joint2" />
+    <exclude body1="joint2_distal" body2="link4" />
+    <exclude body1="link4" body2="joint3" />
+    <exclude body1="joint3_distal" body2="link5" />
+    <exclude body1="link5" body2="link6" />
+    <exclude body1="link6" body2="link7" />
+    <exclude body1="link7" body2="joint4" />
+    <exclude body1="joint4_distal" body2="link8" />
+    <exclude body1="link8" body2="joint5" />
+    <exclude body1="joint5_distal" body2="link9" />
+  </contact>
+
+  <sensor>
+    <framepos name="joint0_site_pos" objtype="site" objname="joint0_site" />
+    <framequat name="joint0_site_quat" objtype="site" objname="joint0_site" />
+    <framelinvel name="joint0_site_linvel" objtype="site" objname="joint0_site" />
+    <frameangvel name="joint0_site_angvel" objtype="site" objname="joint0_site" />
+    <velocimeter name="joint0_site_vel" site="joint0_site" />
+  </sensor>
+</mujoco>

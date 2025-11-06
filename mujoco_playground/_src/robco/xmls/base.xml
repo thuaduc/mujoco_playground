@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mujocoinclude>
+    <compiler angle="degree" coordinate="local" inertiafromgeom="true"/>
+    <option integrator="RK4" timestep="0.01"/>
+    <default>
+        <joint armature="0.1" damping="1" limited="true"/>
+        <geom conaffinity="1" contype="1" condim="3" density="800" friction="1 0.5 0.5" margin="0" rgba="0.8 0.82 0.85 1"/>
+    </default>
+    <asset>
+        <texture type="skybox" builtin="gradient" rgb1="0.6 0.6 0.6" rgb2="0 0 0" width="1024" height="1024"/>
+        <texture name="texplane" type="2d" builtin="checker" rgb1=".2 .3 .4" rgb2=".1 .15 .2" width="512" height="512" mark="cross" markrgb=".8 .8 .8"/>
+        <material name="matplane" reflectance="0.3" texture="texplane" texrepeat="1 1" texuniform="true"/>
+        <!-- Material for objects -->
+        <material name="red" rgba="0.8 0.1 0.1 1"/>
+        <material name="green" rgba="0.1 0.8 0.1 1"/>
+        <material name="blue" rgba="0.1 0.1 0.8 1"/>
+    </asset>
+</mujocoinclude>
