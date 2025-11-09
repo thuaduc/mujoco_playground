@@ -18,6 +18,7 @@ from mujoco_playground._src import locomotion
 from mujoco_playground._src import manipulation
 from mujoco_playground._src import registry
 from mujoco_playground._src import wrapper
+from mujoco_playground._src import robco
 from mujoco_playground._src import wrapper_torch
 # pylint: disable=g-importing-member
 from mujoco_playground._src.mjx_env import MjxEnv
@@ -31,6 +32,7 @@ __all__ = [
     "dm_control_suite",
     "locomotion",
     "manipulation",
+    "robco",
     "MjxEnv",
     "registry",
     "render_array",

@@ -39,6 +39,7 @@ from mujoco_playground import wrapper
 from mujoco_playground.config import dm_control_suite_params
 from mujoco_playground.config import locomotion_params
 from mujoco_playground.config import manipulation_params
+from mujoco_playground.config import robco_params
 import tensorboardX
 import wandb
 
@@ -175,7 +176,8 @@ def get_rl_config(env_name: str) -> config_dict.ConfigDict:
       return dm_control_suite_params.brax_vision_ppo_config(
           env_name, _IMPL.value
       )
-    return dm_control_suite_params.brax_ppo_config(env_name, _IMPL.value)
+  elif env_name in mujoco_playground.robco._envs:
+    return robco_params.robco_ppo_config(env_name, _IMPL.value)
 
   raise ValueError(f"Env {env_name} not found in {registry.ALL_ENVS}.")
 

@@ -34,8 +34,8 @@ def default_config() -> config_dict.ConfigDict:
         vision=False,
         impl="jax",
         action_scale=1.0,
-        nconmax=10,   # Very small for fast compilation
-        njmax=2,      # Minimal constraints
+        nconmax=10,   # maximum number of contacts
+        njmax=2,      # maximum number of constraints
     )
 
 
@@ -49,6 +49,8 @@ class RobcoArm(RobcoArmBase):
     ) -> None:
         xml_path = mjx_env.ROOT_PATH / "robco" / "xmls" / "robco_arm.xml"
         super().__init__(xml_path, config, config_overrides)
+        # Assume the object is named 'target' in the XML
+        self.target_body_name = "target"
 
     def reset(self, rng: jax.Array) -> mjx_env.State:
         """Reset the environment."""
@@ -67,13 +69,18 @@ class RobcoArm(RobcoArmBase):
         # Create observation
         obs = self._get_obs(data)
 
+        metrics = {}
+        info = {"rng": rng}
+
+        reward, done = jax.numpy.zeros(2)
+
         return mjx_env.State(
             data=data,
             obs=obs,
-            reward=jax.numpy.array(0.0),
-            done=jax.numpy.array(False),
-            metrics={},
-            info={},
+            reward=reward,
+            done=done,
+            metrics=metrics,
+            info=info,
         )
 
     def step(self, state: mjx_env.State, action: jax.Array) -> mjx_env.State:
@@ -84,11 +91,19 @@ class RobcoArm(RobcoArmBase):
         data = mjx_env.step(self._mjx_model, state.data, action, n_substeps=1)
         obs = self._get_obs(data)
 
-        # Simple reward - just negative sum of squared joint velocities (encourages stillness)
-        reward = -jax.numpy.sum(jax.numpy.square(data.qvel)) * 0.01
+        # Get end effector  and target position
+        ee_pos = self.get_end_effector_position(data)
+        target_pos = data.xpos[self._mj_model.body(self.target_body_name).id]
 
-        return state.replace(
-            data=data, obs=obs, reward=reward, done=jax.numpy.array(False)
+        # Reward: negative L2 distance between end effector and target
+        reward = -jax.numpy.linalg.norm(ee_pos - target_pos)
+
+        # Check for NaN in qpos or qvel (episode termination condition)
+        done = jax.numpy.isnan(data.qpos).any() | jax.numpy.isnan(data.qvel).any()
+        done = done.astype(float)
+
+        return mjx_env.State(
+            data=data, obs=obs, reward=reward, done=done, metrics=state.metrics, info=state.info
         )
 
     def _get_obs(self, data: mjx.Data) -> jax.Array:
