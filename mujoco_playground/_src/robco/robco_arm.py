@@ -47,7 +47,7 @@ class RobcoArm(RobcoArmBase):
         config: config_dict.ConfigDict = default_config(),
         config_overrides: Optional[Dict[str, Union[str, int, list[Any]]]] = None,
     ) -> None:
-        xml_path = mjx_env.ROOT_PATH / "robco" / "xmls" / "robco_robot_with_gripper.xml"
+        xml_path = mjx_env.ROOT_PATH / "robco" / "xmls" / "robco_arm.xml"
         super().__init__(xml_path, config, config_overrides)
 
     def reset(self, rng: jax.Array) -> mjx_env.State:

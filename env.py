@@ -35,7 +35,7 @@ class RobcoEnv(mjx_env.MjxEnv):
 
     def __init__(
         self,
-        xml_path: str = 'robco_robot_with_gripper.xml',
+        xml_path: str = 'robco_arm.xml',
         config: Optional[config_dict.ConfigDict] = None,
         config_overrides: Optional[Dict[str, Union[str, int, list[Any]]]] = None,
     ) -> None:
