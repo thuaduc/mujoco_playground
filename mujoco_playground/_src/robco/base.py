@@ -79,68 +79,57 @@ class RobcoArmBase(mjx_env.MjxEnv):
 
     self._mjx_model = mjx.put_model(self._mj_model, impl=self._config.impl)
     self._xml_path = xml_path
+    # Precompute joint qpos/qvel indices (each hinge joint has width 1).
+    self._joint_qpos_indices = [
+        self._mj_model.jnt_qposadr[self._mj_model.joint(j_name).id]
+        for j_name in JOINT_NAMES
+    ]
+    self._joint_qvel_indices = [
+        self._mj_model.jnt_dofadr[self._mj_model.joint(j_name).id]
+        for j_name in JOINT_NAMES
+    ]
+
+    # Precompute end-effector body id with fallback logic once (avoid Python in jitted step).
+    self._ee_body_id = self._compute_ee_body_id()
 
   # Joint and actuator utilities
 
   def get_joint_positions(self, data: mjx.Data) -> jax.Array:
     """Get positions of all arm joints."""
-    joint_ids = [self._mj_model.joint(name).id for name in JOINT_NAMES]
-    joint_ids = jp.array(joint_ids)
-    return data.qpos[joint_ids]
+    return data.qpos[jp.array(self._joint_qpos_indices)]
 
   def get_joint_velocities(self, data: mjx.Data) -> jax.Array:
     """Get velocities of all arm joints."""
-    joint_ids = [self._mj_model.joint(name).id for name in JOINT_NAMES]
-    joint_ids = jp.array(joint_ids)
-    return data.qvel[joint_ids]
+    return data.qvel[jp.array(self._joint_qvel_indices)]
 
   def get_end_effector_position(self, data: mjx.Data) -> jax.Array:
     """Get end effector position using joint 5 position."""
-    try:
-      # Try to get joint5 body position
-      body_id = self._mj_model.body("joint5").id
-      return data.xpos[body_id]
-    except:
-      # Fallback: get position of the last available link
-      try:
-        body_id = self._mj_model.body("link5").id
-        return data.xpos[body_id]
-      except:
-        # Final fallback: use joint 5 position directly
-        joint_id = self._mj_model.joint("joint5_joint").id
-        return data.xpos[joint_id + 1]  # Joint bodies are typically offset by 1
+    return data.xpos[self._ee_body_id]
 
   def get_end_effector_orientation(self, data: mjx.Data) -> jax.Array:
     """Get end effector orientation using joint 5 orientation."""
-    try:
-      # Try to get joint5 body orientation
-      body_id = self._mj_model.body("joint5").id
-      return data.xquat[body_id]
-    except:
-      # Fallback: get orientation of the last available link
-      try:
-        body_id = self._mj_model.body("link5").id
-        return data.xquat[body_id]
-      except:
-        # Final fallback: use joint 5 orientation directly
-        joint_id = self._mj_model.joint("joint5_joint").id
-        return data.xquat[joint_id + 1]  # Joint bodies are typically offset by 1
+    return data.xquat[self._ee_body_id]
 
   def get_end_effector_velocity(self, data: mjx.Data) -> jax.Array:
     """Get end effector linear velocity using joint 5."""
-    try:
-      # Try to get joint5 body velocity
-      body_id = self._mj_model.body("joint5").id
-      return mjx_env.get_body_linvel(self._mjx_model, data, body_id)
-    except:
-      # Fallback: get velocity of the last available link
+    return mjx_env.get_body_linvel(self._mjx_model, data, self._ee_body_id)
+
+  def _compute_ee_body_id(self) -> int:
+    """Resolve a stable end-effector body id with fallbacks."""
+    # Try common body naming conventions.
+    for name in ["joint5", "link5", "joint5_distal"]:
       try:
-        body_id = self._mj_model.body("link5").id
-        return mjx_env.get_body_linvel(self._mjx_model, data, body_id)
-      except:
-        # Final fallback: compute velocity from joint 5 position
-        joint_id = self._mj_model.joint("joint5_joint").id
-        return data.qvel[joint_id:joint_id+3] if joint_id < len(data.qvel) - 2 else jp.zeros(3)
+        return self._mj_model.body(name).id
+      except Exception:  # pylint: disable=broad-except
+        pass
+    # Fallback: use body owning the last joint.
+    try:
+      jnt_id = self._mj_model.joint("joint5_joint").id
+      body_id = self._mj_model.jnt_bodyid[jnt_id]
+      return int(body_id)
+    except Exception:  # pylint: disable=broad-except
+      # Final fallback to world (0) to avoid crashes; will give meaningless EE data.
+      return 0
 
   # Accessors
 
