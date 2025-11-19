@@ -33,7 +33,7 @@ def default_config() -> config_dict.ConfigDict:
         action_repeat=1,
         vision=False,
         impl="jax",
-        action_scale=1.0,
+        action_scale=4.7124,  # Scale actions from [-1, 1] to joint range [-4.7124, 4.7124]
         nconmax=10,   # maximum number of contacts
         njmax=2,      # maximum number of constraints
     )
