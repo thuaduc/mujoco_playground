@@ -65,6 +65,9 @@ class RobcoArm(RobcoArmBase):
             njmax=self._config.njmax,
         )
         data = data.replace(qpos=qpos, qvel=qvel)
+        
+        # Forward pass to compute derived quantities (xpos, xquat, etc.)
+        data = mjx.forward(self._mjx_model, data)
 
         # Create observation
         obs = self._get_obs(data)
@@ -88,7 +91,7 @@ class RobcoArm(RobcoArmBase):
         # Apply action scaling
         action = action * self._config.action_scale
 
-        data = mjx_env.step(self._mjx_model, state.data, action, n_substeps=1)
+        data = mjx_env.step(self._mjx_model, state.data, action, n_substeps=self.n_substeps)
         obs = self._get_obs(data)
 
         # Get end effector  and target position
