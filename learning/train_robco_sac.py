@@ -14,7 +14,6 @@ Usage:
 """
 
 import argparse
-import os
 import random
 import time
 from dataclasses import dataclass
@@ -22,15 +21,19 @@ from dataclasses import dataclass
 import gymnasium as gym
 import jax
 import jax.numpy as jnp
-import mediapy as media
+import mujoco
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-import torch.optim as optim
+from torch import nn, optim
 
 from mujoco_playground import registry
 
+try:
+    import wandb
+    WANDB_AVAILABLE = True
+except ImportError:
+    WANDB_AVAILABLE = False
 
 # ============================================================================
 # Gymnasium Wrapper for RobcoArm
@@ -88,7 +91,6 @@ class RobcoArmGymnasiumWrapper(gym.Env):
     def render(self):
         if self.render_mode == "rgb_array":
             # Use mujoco to render the current state
-            import mujoco
             mj_data = mujoco.MjData(self.env.mj_model)
             mj_data.qpos[:] = np.array(self._state.data.qpos)
             mj_data.qvel[:] = np.array(self._state.data.qvel)
@@ -274,7 +276,8 @@ def main():
     
     # Initialize wandb
     if args.track:
-        import wandb
+        if not WANDB_AVAILABLE:
+            raise ImportError("wandb is required for tracking. Install it with: pip install wandb")
         wandb.init(
             project=args.wandb_project_name,
             entity=args.wandb_entity,
@@ -352,7 +355,6 @@ def main():
         # Episode end
         if done:
             if args.track:
-                import wandb
                 wandb.log({
                     "episode/return": episode_return,
                     "episode/length": episode_length,
@@ -421,7 +423,6 @@ def main():
             # Logging
             if global_step % 1000 == 0:
                 if args.track:
-                    import wandb
                     wandb.log({
                         "losses/qf1_loss": qf1_loss.item(),
                         "losses/qf2_loss": qf2_loss.item(),
@@ -448,7 +449,6 @@ def main():
             
             if frames and args.track:
                 # Convert to video and log to wandb
-                import wandb
                 video = np.array(frames).transpose(0, 3, 1, 2)
                 wandb.log({
                     "video": wandb.Video(video, fps=30, format="mp4"),
@@ -460,7 +460,6 @@ def main():
     
     env.close()
     if args.track:
-        import wandb
         wandb.finish()
     print("Training complete!")
 
