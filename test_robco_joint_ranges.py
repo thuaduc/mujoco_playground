@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 """Test script to verify RobcoArm joint ranges match actuator control ranges."""
 
+import warnings
+
+# Suppress overflow warning from MuJoCo MJX collision detection
+# This occurs when MJX uses jp.finfo(float).max with float32 arrays
+warnings.filterwarnings("ignore", message="overflow encountered in cast")
+
 import jax
 import jax.numpy as jp
 import numpy as np

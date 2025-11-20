@@ -1,0 +1,24 @@
+Failed to import warp: No module named 'warp'
+Failed to import mujoco_warp: No module named 'warp'
+Testing RobcoArm actuator and joint ranges...
+
+Verifying actuator ranges match joint ranges:
+  ✓ Joint 0 (joint0_joint): range=[-4.7124  4.7124], ctrlrange=[-4.7124  4.7124]
+  ✓ Joint 1 (joint1_joint): range=[-4.7124  4.7124], ctrlrange=[-4.7124  4.7124]
+  ✓ Joint 2 (joint2_joint): range=[-4.7124  4.7124], ctrlrange=[-4.7124  4.7124]
+  ✓ Joint 3 (joint3_joint): range=[-4.7124  4.7124], ctrlrange=[-4.7124  4.7124]
+  ✓ Joint 4 (joint4_joint): range=[-4.7124  4.7124], ctrlrange=[-4.7124  4.7124]
+  ✓ Joint 5 (joint5_joint): range=[-4.7124  4.7124], ctrlrange=[-4.7124  4.7124]
+
+Verifying action_scale configuration:
+  ✓ action_scale: expected=4.7124, actual=4.7124
+
+✓ All actuator and joint ranges are properly configured!
+
+Testing action scaling...
+  Action (input): [1. 1. 1. 1. 1. 1.]
+  Expected scaled action: [4.7124 4.7124 4.7124 4.7124 4.7124 4.7124]
+  Joint ranges: [-4.7124, 4.7124]
+  ✓ Actions are properly scaled from [-1, 1] to joint ranges
+
+✅ All tests passed!
