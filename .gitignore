@@ -11,4 +11,5 @@ logs
 
 wandb
 
-.github
+.github*.txt
+test_output.txt
