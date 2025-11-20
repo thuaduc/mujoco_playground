@@ -152,6 +152,8 @@ class Actor(nn.Module):
     def get_action(self, x):
         mean, log_std = self(x)
         std = log_std.exp()
+        # Clamp mean to prevent extreme values that can cause numerical instability
+        mean = torch.clamp(mean, min=-20, max=20)
         normal = torch.distributions.Normal(mean, std)
         x_t = normal.rsample()
         y_t = torch.tanh(x_t)
