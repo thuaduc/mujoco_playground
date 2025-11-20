@@ -36,6 +36,7 @@ def default_config() -> config_dict.ConfigDict:
       action_scale=4.7124,  # Scale actions from [-1, 1] to joint range [-4.7124, 4.7124]
       nconmax=10,  # maximum number of contacts
       njmax=2,  # maximum number of constraints
+      success_distance_threshold=0.05,  # Distance threshold for task success (meters)
   )
 
 
@@ -100,11 +101,14 @@ class RobcoArm(RobcoArmBase):
     ee_pos = self.get_end_effector_position(data)
     target_pos = data.xpos[self._mj_model.body(self.target_body_name).id]
 
-    # Reward: negative L2 distance between end effector and target
-    reward = -jax.numpy.linalg.norm(ee_pos - target_pos)
+    # Compute distance between end effector and target
+    distance = jax.numpy.linalg.norm(ee_pos - target_pos)
 
-    # Check for NaN in qpos or qvel (episode termination condition)
-    done = jax.numpy.isnan(data.qpos).any() | jax.numpy.isnan(data.qvel).any()
+    # Reward: negative L2 distance between end effector and target
+    reward = -distance
+
+    # Episode terminates when distance is below threshold (task success)
+    done = distance < self._config.success_distance_threshold
     done = done.astype(float)
 
     return mjx_env.State(
