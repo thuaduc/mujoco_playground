@@ -12,8 +12,12 @@ Usage:
     # Train for more steps
     python learning/train_robco_sac.py --total-timesteps 500000
 """
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["MUJOCO_GL"] = "egl"
 
 import argparse
+import collections
 import random
 import time
 from dataclasses import dataclass
@@ -152,6 +156,8 @@ class Actor(nn.Module):
     def get_action(self, x):
         mean, log_std = self(x)
         std = log_std.exp()
+        # Clamp mean to prevent extreme values that can cause numerical instability
+        mean = torch.clamp(mean, min=-20, max=20)
         normal = torch.distributions.Normal(mean, std)
         x_t = normal.rsample()
         y_t = torch.tanh(x_t)
@@ -305,6 +311,8 @@ def main():
     action_scale = (env.action_space.high - env.action_space.low) / 2.0
     action_bias = (env.action_space.high + env.action_space.low) / 2.0
     
+    print(f"action_scale: {action_scale} action_bias: {action_bias}")
+    
     actor = Actor(obs_dim, action_dim, action_scale, action_bias).to(device)
     qf1 = SoftQNetwork(obs_dim, action_dim).to(device)
     qf2 = SoftQNetwork(obs_dim, action_dim).to(device)
@@ -333,6 +341,9 @@ def main():
     episode_return = 0
     episode_length = 0
     
+    recent_returns = collections.deque(maxlen=100)
+    recent_lengths = collections.deque(maxlen=100)
+
     for global_step in range(args.total_timesteps):
         # Collect experience
         if global_step < args.learning_starts:
@@ -354,13 +365,20 @@ def main():
         
         # Episode end
         if done:
+            recent_returns.append(episode_return)
+            recent_lengths.append(episode_length)
+            avg_return = np.mean(recent_returns)
+            avg_length = np.mean(recent_lengths)
+
             if args.track:
                 wandb.log({
                     "episode/return": episode_return,
                     "episode/length": episode_length,
+                    "episode/avg_return": avg_return,
+                    "episode/avg_length": avg_length,
                     "global_step": global_step,
                 })
-            print(f"Step {global_step}: episode_return={episode_return:.2f}, episode_length={episode_length}")
+            print(f"Step {global_step}: episode_return={episode_return:.2f}, episode_length={episode_length}, avg_return={avg_return:.2f}")
             
             obs, _ = env.reset()
             episode_return = 0
