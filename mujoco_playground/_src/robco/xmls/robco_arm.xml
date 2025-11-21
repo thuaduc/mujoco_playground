@@ -76,19 +76,13 @@
       </body>
     </body>
   </worldbody>
-  <default>
-    <default class="motor">
-      <motor ctrllimited="true" ctrlrange="-1 1" />
-    </default>
-  </default>
+
   <actuator>
-    <motor name="joint0_joint_ctrl" joint="joint0_joint" class="motor" />
-    <motor name="joint1_joint_ctrl" joint="joint1_joint" class="motor" />
-    <motor name="joint2_joint_ctrl" joint="joint2_joint" class="motor" />
-    <motor name="joint3_joint_ctrl" joint="joint3_joint" class="motor" />
-    <motor name="joint4_joint_ctrl" joint="joint4_joint" class="motor" />
-    <motor name="joint5_joint_ctrl" joint="joint5_joint" class="motor" />
+    <motor name="joint0_joint_ctrl" joint="joint0_joint" gear="1" ctrllimited="true" ctrlrange="-4.7124 4.7124"/>
+    <motor name="joint1_joint_ctrl" joint="joint1_joint" gear="1" ctrllimited="true" ctrlrange="-4.7124 4.7124"/>
+    <motor name="joint2_joint_ctrl" joint="joint2_joint" gear="1" ctrllimited="true" ctrlrange="-4.7124 4.7124"/>
+    <motor name="joint3_joint_ctrl" joint="joint3_joint" gear="1" ctrllimited="true" ctrlrange="-4.7124 4.7124"/>
+    <motor name="joint4_joint_ctrl" joint="joint4_joint" gear="1" ctrllimited="true" ctrlrange="-4.7124 4.7124"/>
+    <motor name="joint5_joint_ctrl" joint="joint5_joint" gear="1" ctrllimited="true" ctrlrange="-4.7124 4.7124"/>
   </actuator>
-
-
 </mujoco>
