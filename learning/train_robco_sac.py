@@ -87,8 +87,10 @@ class RobcoArmGymnasiumWrapper(gym.Env):
         obs = np.array(self._state.obs, dtype=np.float32)
         reward = float(self._state.reward)
         terminated = bool(self._state.done)
-        truncated = self._step_count >= 1000  # Episode length
-        info = {}
+        truncated = self._step_count >= self.env._config.episode_length
+        info = {
+            "metrics": dict(self._state.metrics) if hasattr(self._state, 'metrics') else {}
+        }
         
         return obs, reward, terminated, truncated, info
 
@@ -211,6 +213,64 @@ class ReplayBuffer:
 
 
 # ============================================================================
+# Model Saving Utilities
+# ============================================================================
+
+def save_params(
+    global_step,
+    actor,
+    qf1,
+    qf2,
+    qf1_target,
+    qf2_target,
+    actor_optimizer,
+    q_optimizer,
+    alpha_optimizer,
+    log_alpha,
+    args,
+    filepath
+):
+    """Save complete training state including models, optimizers, and hyperparameters."""
+    checkpoint = {
+        "global_step": global_step,
+        "actor_state_dict": actor.state_dict(),
+        "qf1_state_dict": qf1.state_dict(),
+        "qf2_state_dict": qf2.state_dict(),
+        "qf1_target_state_dict": qf1_target.state_dict(),
+        "qf2_target_state_dict": qf2_target.state_dict(),
+        "actor_optimizer_state_dict": actor_optimizer.state_dict(),
+        "q_optimizer_state_dict": q_optimizer.state_dict(),
+        "log_alpha": log_alpha.detach().cpu() if args.autotune else None,
+        "alpha_optimizer_state_dict": alpha_optimizer.state_dict() if args.autotune else None,
+        "args": vars(args),
+    }
+    torch.save(checkpoint, filepath)
+    print(f"Checkpoint saved to {filepath}")
+
+
+def load_checkpoint(filepath, actor, qf1, qf2, qf1_target, qf2_target, actor_optimizer, q_optimizer, alpha_optimizer, log_alpha, device):
+    """Load complete training state from checkpoint."""
+    checkpoint = torch.load(filepath, map_location=device, weights_only=False)
+    
+    actor.load_state_dict(checkpoint["actor_state_dict"])
+    qf1.load_state_dict(checkpoint["qf1_state_dict"])
+    qf2.load_state_dict(checkpoint["qf2_state_dict"])
+    qf1_target.load_state_dict(checkpoint["qf1_target_state_dict"])
+    qf2_target.load_state_dict(checkpoint["qf2_target_state_dict"])
+    
+    actor_optimizer.load_state_dict(checkpoint["actor_optimizer_state_dict"])
+    q_optimizer.load_state_dict(checkpoint["q_optimizer_state_dict"])
+    
+    if checkpoint["log_alpha"] is not None:
+        log_alpha.data.copy_(checkpoint["log_alpha"].to(device))
+        alpha_optimizer.load_state_dict(checkpoint["alpha_optimizer_state_dict"])
+    
+    global_step = checkpoint["global_step"]
+    print(f"Checkpoint loaded from {filepath}, resuming from step {global_step}")
+    return global_step
+
+
+# ============================================================================
 # Training Configuration
 # ============================================================================
 
@@ -223,6 +283,7 @@ def parse_args():
     parser.add_argument("--track", action="store_true", help="Track with wandb")
     parser.add_argument("--wandb-project-name", type=str, default="mujoco_playground", help="Wandb project name")
     parser.add_argument("--wandb-entity", type=str, default=None, help="Wandb entity")
+    parser.add_argument("--checkpoint-path", type=str, default=None, help="Path to checkpoint to restore from")
     
     # Environment
     parser.add_argument("--total-timesteps", type=int, default=100000, help="Total training timesteps")
@@ -233,7 +294,7 @@ def parse_args():
     parser.add_argument("--tau", type=float, default=0.005, help="Target network update rate")
     parser.add_argument("--batch-size", type=int, default=256, help="Batch size")
     parser.add_argument("--learning-starts", type=int, default=5000, help="Steps before learning starts")
-    parser.add_argument("--policy-lr", type=float, default=3e-4, help="Policy learning rate")
+    parser.add_argument("--policy-lr", type=float, default=1e-3, help="Policy learning rate")
     parser.add_argument("--q-lr", type=float, default=1e-3, help="Q-network learning rate")
     parser.add_argument("--policy-frequency", type=int, default=2, help="Policy update frequency")
     parser.add_argument("--target-network-frequency", type=int, default=1, help="Target network update frequency")
@@ -242,6 +303,7 @@ def parse_args():
     
     # Logging
     parser.add_argument("--render-frequency", type=int, default=5000, help="Video rendering frequency")
+    parser.add_argument("--save-interval", type=int, default=10000, help="Model save interval")
     
     return parser.parse_args()
 
@@ -278,7 +340,9 @@ class Args:
 
 def main():
     args = parse_args()
-    run_name = f"{args.exp_name}__{args.seed}__{int(time.time())}"
+    import uuid
+    uid = uuid.uuid4().hex[:6]  # 6-char unique ID
+    run_name = f"{args.exp_name}_{args.seed}_{uid}"
     
     # Initialize wandb
     if args.track:
@@ -299,6 +363,11 @@ def main():
     
     device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
     print(f"Using device: {device}")
+    
+    # Create checkpoint directory
+    checkpoint_dir = f"checkpoints/{run_name}"
+    os.makedirs(checkpoint_dir, exist_ok=True)
+    print(f"Checkpoint directory: {checkpoint_dir}")
     
     # Create environment
     env = RobcoArmGymnasiumWrapper(render_mode="rgb_array")
@@ -336,13 +405,19 @@ def main():
     # Replay buffer
     replay_buffer = ReplayBuffer(obs_dim, action_dim, args.buffer_size, device)
     
+    # Handle checkpoint loading
+    global_step = 0
+    if args.checkpoint_path is not None:
+        global_step = load_checkpoint(
+            args.checkpoint_path, actor, qf1, qf2, qf1_target, qf2_target,
+            actor_optimizer, q_optimizer, alpha_optimizer, log_alpha, device
+        )
+    
     # Training loop
     obs, _ = env.reset(seed=args.seed)
     episode_return = 0
     episode_length = 0
-    
-    recent_returns = collections.deque(maxlen=100)
-    recent_lengths = collections.deque(maxlen=100)
+    episode_metrics = {}
 
     for global_step in range(args.total_timesteps):
         # Collect experience
@@ -359,30 +434,37 @@ def main():
         episode_return += reward
         episode_length += 1
         
+        # Accumulate metrics
+        if "metrics" in info:
+            for key, value in info["metrics"].items():
+                if key not in episode_metrics:
+                    episode_metrics[key] = []
+                episode_metrics[key].append(float(value))
+        
         # Store transition
         replay_buffer.add(obs, next_obs, action, reward, float(terminated))
         obs = next_obs
         
         # Episode end
         if done:
-            recent_returns.append(episode_return)
-            recent_lengths.append(episode_length)
-            avg_return = np.mean(recent_returns)
-            avg_length = np.mean(recent_lengths)
-
+            # Calculate average metrics for the episode
+            avg_metrics = {}
+            for key, values in episode_metrics.items():
+                avg_metrics[f"episode/avg_{key}"] = np.mean(values)
+            
             if args.track:
                 wandb.log({
                     "episode/return": episode_return,
                     "episode/length": episode_length,
-                    "episode/avg_return": avg_return,
-                    "episode/avg_length": avg_length,
                     "global_step": global_step,
+                    **avg_metrics,
                 })
-            print(f"Step {global_step}: episode_return={episode_return:.2f}, episode_length={episode_length}, avg_return={avg_return:.2f}")
+            print(f"Step {global_step}: episode_return={episode_return:.2f}, episode_length={episode_length}")
             
             obs, _ = env.reset()
             episode_return = 0
             episode_length = 0
+            episode_metrics = {}
         
         # Training
         if global_step >= args.learning_starts:
@@ -448,6 +530,14 @@ def main():
                         "alpha": alpha,
                         "global_step": global_step,
                     })
+            
+            # Save checkpoint periodically
+            if global_step % args.save_interval == 0 and global_step > 0:
+                save_params(
+                    global_step, actor, qf1, qf2, qf1_target, qf2_target,
+                    actor_optimizer, q_optimizer, alpha_optimizer, log_alpha,
+                    args, f"{checkpoint_dir}/checkpoint_{global_step}.pt"
+                )
         
         # Render video periodically
         if global_step > 0 and global_step % args.render_frequency == 0:
@@ -479,6 +569,14 @@ def main():
     env.close()
     if args.track:
         wandb.finish()
+    
+    # Save final checkpoint
+    save_params(
+        global_step, actor, qf1, qf2, qf1_target, qf2_target,
+        actor_optimizer, q_optimizer, alpha_optimizer, log_alpha,
+        args, f"{checkpoint_dir}/final_checkpoint.pt"
+    )
+    
     print("Training complete!")
 
 

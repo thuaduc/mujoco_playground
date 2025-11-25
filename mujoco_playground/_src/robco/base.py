@@ -1,19 +1,3 @@
-# Copyright 2025 DeepMind Technologies Limited
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# ==============================================================================
-"""Base class for Robco arm environments."""
-
 from typing import Any, Dict, Optional, Union
 
 from etils import epath
@@ -25,6 +9,7 @@ from mujoco import mjx
 
 from mujoco_playground._src import mjx_env
 
+_XML_PATH = mjx_env.ROOT_PATH / "robco" / "xmls"
 
 # Joint names for the Robco arm
 JOINT_NAMES = [
@@ -48,13 +33,18 @@ ACTUATOR_NAMES = [
 
 
 def get_assets() -> Dict[str, bytes]:
-  """Get assets for Robco arm environments."""
   assets = {}
-  robco_path = mjx_env.ROOT_PATH / "robco" / "xmls"
-  mjx_env.update_assets(assets, robco_path, "*.xml")
-  mjx_env.update_assets(assets, robco_path / "urdf", "*.stl")
-  mjx_env.update_assets(assets, robco_path / "urdf", "*.obj")
+  mjx_env.update_assets(assets, _XML_PATH, "*.xml")
+  
+  # Add assets with proper subdirectory paths
+  assets_path = _XML_PATH / "assets"
+  for asset_file in assets_path.glob("*"):
+    if asset_file.is_file():
+      # Include the assets/ prefix in the key to match XML file references
+      assets[f"assets/{asset_file.name}"] = asset_file.read_bytes()
+  
   return assets
+
 
 
 class RobcoArmBase(mjx_env.MjxEnv):
@@ -79,59 +69,27 @@ class RobcoArmBase(mjx_env.MjxEnv):
 
     self._mjx_model = mjx.put_model(self._mj_model, impl=self._config.impl)
     self._xml_path = xml_path
-    # Precompute joint qpos/qvel indices (each hinge joint has width 1).
-    self._joint_qpos_indices = [
-        self._mj_model.jnt_qposadr[self._mj_model.joint(j_name).id]
-        for j_name in JOINT_NAMES
-    ]
-    self._joint_qvel_indices = [
-        self._mj_model.jnt_dofadr[self._mj_model.joint(j_name).id]
-        for j_name in JOINT_NAMES
-    ]
 
-    # Precompute end-effector body id with fallback logic once (avoid Python in jitted step).
-    self._ee_body_id = self._compute_ee_body_id()
+    self._ee_body_id = self._mj_model.body("joint5_distal").id
 
   # Joint and actuator utilities
 
   def get_joint_positions(self, data: mjx.Data) -> jax.Array:
     """Get positions of all arm joints."""
-    return data.qpos[jp.array(self._joint_qpos_indices)]
+    return data.qpos
 
   def get_joint_velocities(self, data: mjx.Data) -> jax.Array:
     """Get velocities of all arm joints."""
-    return data.qvel[jp.array(self._joint_qvel_indices)]
+    return data.qvel
 
   def get_end_effector_position(self, data: mjx.Data) -> jax.Array:
     """Get end effector position using joint 5 position."""
     return data.xpos[self._ee_body_id]
 
-  def get_end_effector_orientation(self, data: mjx.Data) -> jax.Array:
-    """Get end effector orientation using joint 5 orientation."""
-    return data.xquat[self._ee_body_id]
-
-  def get_end_effector_velocity(self, data: mjx.Data) -> jax.Array:
-    """Get end effector linear velocity using joint 5."""
-    return mjx_env.get_body_linvel(self._mjx_model, data, self._ee_body_id)
-
-  def _compute_ee_body_id(self) -> int:
-    """Resolve a stable end-effector body id with fallbacks."""
-    # Try common body naming conventions.
-    for name in ["joint5", "link5", "joint5_distal"]:
-      try:
-        return self._mj_model.body(name).id
-      except Exception:  # pylint: disable=broad-except
-        pass
-    # Fallback: use body owning the last joint.
-    try:
-      jnt_id = self._mj_model.joint("joint5_joint").id
-      body_id = self._mj_model.jnt_bodyid[jnt_id]
-      return int(body_id)
-    except Exception:  # pylint: disable=broad-except
-      # Final fallback to world (0) to avoid crashes; will give meaningless EE data.
-      return 0
-
-  # Accessors
+  def get_reaching_point_position(self, data: mjx.Data) -> jax.Array:
+    """Get target reaching point position."""
+    target_body_id = self._mj_model.body(self.target_body_name).id
+    return data.xpos[target_body_id]
 
   @property
   def xml_path(self) -> str:
@@ -152,19 +110,3 @@ class RobcoArmBase(mjx_env.MjxEnv):
   @property
   def num_joints(self) -> int:
     return len(JOINT_NAMES)
-
-
-def uniform_quat(rng: jax.Array) -> jax.Array:
-  """Generate a random quaternion from a uniform distribution."""
-  u, v, w = jax.random.uniform(rng, (3,))
-  return jp.array([
-      jp.sqrt(1 - u) * jp.sin(2 * jp.pi * v),
-      jp.sqrt(1 - u) * jp.cos(2 * jp.pi * v),
-      jp.sqrt(u) * jp.sin(2 * jp.pi * w),
-      jp.sqrt(u) * jp.cos(2 * jp.pi * w),
-  ])
-
-
-def normalize_angle(angle: jax.Array) -> jax.Array:
-  """Normalize angle to [-pi, pi]."""
-  return jp.mod(angle + jp.pi, 2 * jp.pi) - jp.pi

@@ -1,4 +1,8 @@
 ---
 applyTo: '**'
 ---
-source .venv/bin/activate before running any commands in this repository.
+use conda env called playground before running any commands
+
+```bash
+conda activate playground
+```
