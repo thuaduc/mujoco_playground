@@ -46,17 +46,24 @@ class RobcoArm(RobcoArmBase):
 
     # name of target body in XML (must exist)
     self.target_body_name = "target"
+    self._target_body_id = self._mj_model.body(self.target_body_name).id
 
     # store sensor *ids* (these come from model.sensor(name).id)
-    self._self_collision_sensors = [
-        self._mj_model.sensor("joint0_joint4_found").id,
-        self._mj_model.sensor("joint1_joint4_found").id,
-    ]
+    self._self_collision_sensor_adrs = jp.array(
+        [
+            self._mj_model.sensor("joint0_joint4_found").adr,
+            self._mj_model.sensor("joint1_joint4_found").adr,
+        ],
+        dtype=jp.int32,
+    )
 
-    self._ground_collision_sensors = [
-        self._mj_model.sensor("joint3_floor_found").id,
-        self._mj_model.sensor("joint4_floor_found").id,
-    ]
+    self._ground_collision_sensor_adrs = jp.array(
+        [
+            self._mj_model.sensor("joint3_floor_found").adr,
+            self._mj_model.sensor("joint4_floor_found").adr,
+        ],
+        dtype=jp.int32,
+    )
 
   def reset(self, rng: jax.Array) -> mjx_env.State:
     """Reset the environment and return initial State (mjx Data + obs, metrics...)."""
@@ -114,8 +121,7 @@ class RobcoArm(RobcoArmBase):
 
     # compute termination condition in JAX
     ee_pos = self.get_end_effector_position(data)
-    target_body = self._mj_model.body(self.target_body_name)
-    target_pos = data.xpos[target_body.id]
+    target_pos = data.xpos[self._target_body_id]
     distance = jp.linalg.norm(ee_pos - target_pos)
     
     # temporary disable done condition
@@ -143,11 +149,15 @@ class RobcoArm(RobcoArmBase):
 
     return jax.numpy.concatenate([joint_pos, joint_vel, ee_pos, target_pos])
 
+  def get_reaching_point_position(self, data: mjx.Data) -> jax.Array:
+    """Get target reaching point position."""
+    return data.xpos[self._target_body_id]
+
 
   def _get_reward(self, data: mjx.Data) -> Dict[str, jax.Array]:
     """Return raw (unscaled) reward components as JAX arrays."""
     ee_pos = self.get_end_effector_position(data)
-    target_pos = data.xpos[self._mj_model.body(self.target_body_name).id]
+    target_pos = data.xpos[self._target_body_id]
     distance = jp.linalg.norm(ee_pos - target_pos)
 
     rewards = {
@@ -163,20 +173,24 @@ class RobcoArm(RobcoArmBase):
     return -distance
 
   def _cost_ground_collision(self, data: mjx.Data) -> jax.Array:
-    ground_collision_vals = [
-      (data.sensordata[self._mj_model.sensor(sid).adr] > 0).astype(jp.float32)
-      for sid in self._ground_collision_sensors
-    ]
-    
-    return -jp.sum(jp.stack(ground_collision_vals)) if ground_collision_vals else jp.array(0.0, dtype=jp.float32)
+    ground_collision_vals = (
+        data.sensordata[self._ground_collision_sensor_adrs] > 0
+    ).astype(jp.float32)
+    return (
+        -jp.sum(ground_collision_vals)
+        if self._ground_collision_sensor_adrs.size > 0
+        else jp.array(0.0, dtype=jp.float32)
+    )
 
   def _cost_self_collision(self, data: mjx.Data) -> jax.Array:
-    self_collision_vals = [
-      (data.sensordata[self._mj_model.sensor(sid).adr] > 0).astype(jp.float32)
-      for sid in self._self_collision_sensors
-    ]
-    
-    return -jp.sum(jp.stack(self_collision_vals)) if self_collision_vals else jp.array(0.0, dtype=jp.float32)
+    self_collision_vals = (
+        data.sensordata[self._self_collision_sensor_adrs] > 0
+    ).astype(jp.float32)
+    return (
+        -jp.sum(self_collision_vals)
+        if self._self_collision_sensor_adrs.size > 0
+        else jp.array(0.0, dtype=jp.float32)
+    )
 
   def _cost_energy(
       self, qvel: jax.Array, qfrc_actuator: jax.Array
