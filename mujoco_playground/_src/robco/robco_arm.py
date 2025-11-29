@@ -126,7 +126,7 @@ class RobcoArm(RobcoArmBase):
     
     # temporary disable done condition
     # done = (distance < jp.array(self._config.success_distance_threshold)).astype(jp.float32)
-    done = jp.array(1.0)
+    done = jp.array(0.0)
     
     # create new metrics dict (avoid in-place mutation)
     metrics = {**state.metrics, **raw_rewards}
