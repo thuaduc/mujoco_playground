@@ -28,8 +28,8 @@
     <geom type="mesh" mesh="BD116_proximal_part_convdec" contype="0" conaffinity="0"/>
     <geom name="joint0_collision" type="box" size="0.15 0.15 0.15" pos="0 0 0" rgba="1 0 0 0.3" contype="1" conaffinity="1"/> <!-- red -->
     <!-- Target object for reaching task -->
-    <body name="target" pos="1 0 0.05">
-      <geom type="sphere" size="0.05" rgba="1 0 0 1"/>
+    <body name="target" pos="1 0 0.55">
+      <geom type="sphere" size="0.05" rgba="1 0 0 1" contype="0" conaffinity="0"/>
     </body>
     <body name="joint0_distal" pos="0 0 0.1887">
       <inertial pos="0.00621845 0.000265818 0.0535059" quat="0.73903 0.0245332 0.0293139 0.672587" mass="4.1622" diaginertia="0.0429894 0.042189 0.00873913"/>

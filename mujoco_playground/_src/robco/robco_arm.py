@@ -25,8 +25,8 @@ def default_config() -> config_dict.ConfigDict:
       reward_config=config_dict.create(
           scales=config_dict.create(
               end_effector_target=1,
-              ground_collision=2,
-              self_collision=2,
+              ground_collision=1,
+              self_collision=1,
               energy=0,
           ),
       ),
@@ -126,7 +126,7 @@ class RobcoArm(RobcoArmBase):
     
     # temporary disable done condition
     # done = (distance < jp.array(self._config.success_distance_threshold)).astype(jp.float32)
-    done = jp.array(0.0)
+    done = jp.array(1.0)
     
     # create new metrics dict (avoid in-place mutation)
     metrics = {**state.metrics, **raw_rewards}
@@ -152,7 +152,6 @@ class RobcoArm(RobcoArmBase):
   def get_reaching_point_position(self, data: mjx.Data) -> jax.Array:
     """Get target reaching point position."""
     return data.xpos[self._target_body_id]
-
 
   def _get_reward(self, data: mjx.Data) -> Dict[str, jax.Array]:
     """Return raw (unscaled) reward components as JAX arrays."""
