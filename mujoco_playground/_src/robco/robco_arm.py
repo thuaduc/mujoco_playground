@@ -12,22 +12,22 @@ from mujoco_playground._src.robco.base import RobcoArmBase
 def default_config() -> config_dict.ConfigDict:
   """Default configuration for basic RobcoArm environments."""
   return config_dict.create(
-      ctrl_dt=0.02,
-      sim_dt=0.002,
+      ctrl_dt=0.05,
+      sim_dt=0.005,
       episode_length=150,
       action_repeat=1,
       vision=False,
       impl="jax",
       action_scale=4.7124,
-      nconmax=32,
-      njmax=8,
+      nconmax=4096,
+      njmax=128,
       success_distance_threshold=0.05,
       reward_config=config_dict.create(
           scales=config_dict.create(
               end_effector_target=1,
-              ground_collision=1,
-              self_collision=1,
-              energy=0,
+              ground_collision=0.5,
+              self_collision=0.5,
+              energy=0.0001,
           ),
       ),
   )
@@ -195,4 +195,4 @@ class RobcoArm(RobcoArmBase):
       self, qvel: jax.Array, qfrc_actuator: jax.Array
   ) -> jax.Array:
     """Penalize energy consumption (negative)."""
-    return jp.tanh(-jp.sum(jp.abs(qvel) * jp.abs(qfrc_actuator)))
+    return -jp.sum(jp.abs(qvel) * jp.abs(qfrc_actuator))

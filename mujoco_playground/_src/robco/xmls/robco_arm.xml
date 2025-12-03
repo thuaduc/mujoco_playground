@@ -1,5 +1,11 @@
 <mujoco model="robco">
   <compiler angle="radian"/>
+
+  <default>
+    <joint damping="1.0" armature="0.1"/>
+    <motor ctrllimited="true" ctrlrange="-1 1"/> 
+  </default>
+  
   <asset>
     <!-- Textures and materials for the ground plane -->
     <texture name="texplane" type="2d" builtin="checker" rgb1=".2 .3 .4" rgb2=".1 .15 .2" width="512" height="512" mark="cross" markrgb=".8 .8 .8"/>
@@ -91,11 +97,13 @@
   </sensor>
 
   <actuator>
-    <motor name="joint0_joint_ctrl" joint="joint0_joint" gear="1" ctrllimited="true" ctrlrange="-4.7124 4.7124"/>
-    <motor name="joint1_joint_ctrl" joint="joint1_joint" gear="1" ctrllimited="true" ctrlrange="-4.7124 4.7124"/>
-    <motor name="joint2_joint_ctrl" joint="joint2_joint" gear="1" ctrllimited="true" ctrlrange="-4.7124 4.7124"/>
-    <motor name="joint3_joint_ctrl" joint="joint3_joint" gear="1" ctrllimited="true" ctrlrange="-4.7124 4.7124"/>
-    <motor name="joint4_joint_ctrl" joint="joint4_joint" gear="1" ctrllimited="true" ctrlrange="-4.7124 4.7124"/>
-    <motor name="joint5_joint_ctrl" joint="joint5_joint" gear="1" ctrllimited="true" ctrlrange="-4.7124 4.7124"/>
-  </actuator>
+      <motor name="joint0_joint_ctrl" joint="joint0_joint" gear="150" ctrllimited="true" ctrlrange="-1 1"/>
+      <motor name="joint1_joint_ctrl" joint="joint1_joint" gear="250" ctrllimited="true" ctrlrange="-1 1"/>
+      <motor name="joint2_joint_ctrl" joint="joint2_joint" gear="150" ctrllimited="true" ctrlrange="-1 1"/>
+
+      <motor name="joint3_joint_ctrl" joint="joint3_joint" gear="60" ctrllimited="true" ctrlrange="-1 1"/>
+      <motor name="joint4_joint_ctrl" joint="joint4_joint" gear="60" ctrllimited="true" ctrlrange="-1 1"/>
+
+      <motor name="joint5_joint_ctrl" joint="joint5_joint" gear="20" ctrllimited="true" ctrlrange="-1 1"/>
+    </actuator>
 </mujoco>
