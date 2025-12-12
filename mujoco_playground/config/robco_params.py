@@ -35,15 +35,15 @@ def robco_sac_config(
 	env_config = get_default_config(env_name)
 
 	rl_config = config_dict.create(
-		num_timesteps=100_000,
-		num_evals=20,
+		num_timesteps=1_000_000,
+		num_evals=100,
 		reward_scaling=1.0,
 		episode_length=env_config.episode_length,
 		normalize_observations=True,
 		action_repeat=1,
-		discounting=0.99,
+		discounting=1.00,
 		learning_rate=1e-3,
-		num_envs=128,
+		num_envs=64,
 		batch_size=256,
 		grad_updates_per_step=4,
 		max_replay_size=100_000,
@@ -51,7 +51,7 @@ def robco_sac_config(
 		tau=0.005,
 		network_factory=config_dict.create(
 			q_network_layer_norm=True,
-			hidden_layer_sizes=(256, 128),
+			hidden_layer_sizes=(128, 64),
 		),
 	)
 	return rl_config
