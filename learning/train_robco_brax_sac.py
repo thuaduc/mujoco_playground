@@ -52,8 +52,10 @@ import wandb
 # ============================================================================
 
 def get_sac_config(env_name: str) -> config_dict.ConfigDict:
-    """Returns SAC config tuned for RobcoArm."""
-    return robco_params.robco_sac_config(env_name)
+    """Returns SAC config tuned for the specified environment."""
+    config = robco_params.robco_sac_config(env_name)
+    
+    return config
 
 
 def parse_args():
@@ -65,9 +67,11 @@ def parse_args():
     parser.add_argument("--wandb-project-name", type=str, default="mujoco_playground", help="Wandb project name")
     parser.add_argument("--wandb-entity", type=str, default="thuaduc24042001-technical-university-of-munich", help="Wandb entity")
     
-    # Environment
-    parser.add_argument("--env-name", type=str, default="RobcoArm", help="Environment name")
-    parser.add_argument("--num-timesteps", type=int, default=100_000, help="Total training timesteps")
+    # Environment / Task selection
+    parser.add_argument("--env-name", type=str, default="RobcoArm", 
+                        choices=["RobcoArmPosition", "RobcoArmTorque", "RobcoPositionHard"],
+                        help="Environment/task name (RobcoArm: fixed target, RobcoHard: randomized target)")
+    parser.add_argument("--num-timesteps", type=int, default=None, help="Total training timesteps")
     parser.add_argument("--episode-length", type=int, default=None, help="Episode length (uses env default if not set)")
     
     # SAC hyperparameters
@@ -78,12 +82,12 @@ def parse_args():
     parser.add_argument("--discounting", type=float, default=1.00, help="Discount factor (gamma)")
     parser.add_argument("--reward-scaling", type=float, default=1.0, help="Reward scaling")
     parser.add_argument("--grad-updates-per-step", type=int, default=4, help="Gradient updates per env step")
-    parser.add_argument("--max-replay-size", type=int, default=100_000, help="Maximum replay buffer size")
-    parser.add_argument("--min-replay-size", type=int, default=1000, help="Minimum replay size before training")
-    parser.add_argument("--normalize-observations", action="store_true", default=True, help="Normalize observations")
+    parser.add_argument("--max-replay-size", type=int, default=10_000, help="Maximum replay buffer size")
+    parser.add_argument("--min-replay-size", type=int, default=1_000, help="Minimum replay size before training")
+    parser.add_argument("--normalize-observations", action="store_true", default=False, help="Normalize observations")
     
     # Logging
-    parser.add_argument("--num-evals", type=int, default=100, help="Number of evaluations during training")
+    parser.add_argument("--num-evals", type=int, default=50, help="Number of evaluations during training")
     parser.add_argument("--num-videos", type=int, default=1, help="Number of videos to record after training")
     parser.add_argument("--save-checkpoint", action="store_true", default=True, help="Save checkpoints")
     
@@ -96,10 +100,11 @@ def main():
     # Generate unique run name
     uid = uuid.uuid4().hex[:6]
     timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    run_name = f"{args.exp_name}_{args.seed}_{uid}"
+    run_name = f"{args.exp_name}_{args.env_name.lower()}_{args.seed}_{uid}"
     
     print(f"=" * 60)
-    print(f"Brax SAC Training for {args.env_name}")
+    print(f"Brax SAC Training")
+    print(f"Task: {args.env_name}")
     print(f"Run name: {run_name}")
     print(f"=" * 60)
     
