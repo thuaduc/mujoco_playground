@@ -69,7 +69,7 @@ def parse_args():
     
     # Environment / Task selection
     parser.add_argument("--env-name", type=str, default="RobcoArm", 
-                        choices=["RobcoArmPosition", "RobcoArmTorque", "RobcoPositionHard"],
+                        choices=["RobcoArmPosition", "RobcoArmTorque", "RobcoPositionHard, RobcoArmBox"],
                         help="Environment/task name (RobcoArm: fixed target, RobcoHard: randomized target)")
     parser.add_argument("--num-timesteps", type=int, default=None, help="Total training timesteps")
     parser.add_argument("--episode-length", type=int, default=None, help="Episode length (uses env default if not set)")
