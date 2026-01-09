@@ -1,4 +1,3 @@
-import os
 from typing import Any, Dict, Optional, Union, Sequence
 
 import jax
@@ -23,6 +22,7 @@ def default_config() -> config_dict.ConfigDict:
       nconmax=4096,
       njmax=128,
       box_on_target_distance_threshold=0.1,
+      #box_push_speed=0.25,  # Desired pushing speed (m/s)
       reward_config=config_dict.create(
           scales=config_dict.create(
               box_on_target=500.0,  # Add a large bonus for box being on target
@@ -53,17 +53,6 @@ class RobcoArmBox(RobcoArmBase):
   ) -> None:
     xml_path = mjx_env.ROOT_PATH / "robco" / "xmls" / "robco_arm_box.xml"
     super().__init__(xml_path, config, config_overrides)
-
-    # Save this file to wandb code section if wandb is active
-    try:
-      import wandb
-      if wandb.run:
-        wandb.run.log_code(
-            root=os.path.dirname(__file__),
-            include_fn=lambda path: path.endswith(os.path.basename(__file__))
-        )
-    except (ImportError, AttributeError):
-      pass
 
     # name of target body in XML (must exist)
     self.target_body_name = "target"
@@ -306,9 +295,9 @@ class RobcoArmBox(RobcoArmBase):
     dist = jp.linalg.norm(vec_box_target)
     # Normalized direction
     dir_box_target = vec_box_target / (dist + 1e-6)
-    # Project velocity onto direction (2D)
+    # Project velocity onto direction (2D) / do not reward for more than box_push_speed velocity
     vel_proj = jp.dot(box_vel[:2], dir_box_target)
-    vel_proj = jp.minimum(vel_proj, self._config.target_push_speed)
+    #vel_proj = jp.minimum(vel_proj, self._config.box_push_speed)
     
     # Gate reward by alignment: if robot is not aligned, velocity reward is suppressed.
     dist_ee_push = self._get_alignment_dist(box_pos, target_pos, ee_pos)
@@ -324,8 +313,8 @@ class RobcoArmBox(RobcoArmBase):
     current_qpos = data.qpos[:self.num_joints]
     neutral_qpos = self._mjx_model.qpos0[:self.num_joints]
     dist_to_neutral = jp.linalg.norm(current_qpos - neutral_qpos)
-    # return jp.where(is_success, 1.0 / (1.0 + 2.0 * dist_to_neutral), 0.0)
-    return jp.where(is_success, 1.0 - 0.5 * dist_to_neutral, 0.0)
+    return jp.where(is_success, 1.0 / (1.0 + 2.0 * dist_to_neutral), 0.0)
+    #return jp.where(is_success, 1.0 - 0.5 * dist_to_neutral, 0.0) # linear
 
   #####################################
   # Negative reward component functions

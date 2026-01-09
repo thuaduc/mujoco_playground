@@ -22,6 +22,7 @@ import argparse
 import datetime
 import functools
 import json
+import inspect
 import time
 import uuid
 
@@ -29,6 +30,7 @@ import jax
 import jax.numpy as jp
 import mediapy as media
 import mujoco
+from mujoco import mjx
 import numpy as np
 from brax.training.agents.sac import train as sac
 from brax.training.agents.sac import networks as sac_networks
@@ -69,7 +71,7 @@ def parse_args():
     
     # Environment / Task selection
     parser.add_argument("--env-name", type=str, default="RobcoArm", 
-                        choices=["RobcoArmPosition", "RobcoArmTorque", "RobcoPositionHard, RobcoArmBox"],
+                        choices=["RobcoArmPosition", "RobcoArmTorque", "RobcoPositionHard", "RobcoArmBox"],
                         help="Environment/task name (RobcoArm: fixed target, RobcoHard: randomized target)")
     parser.add_argument("--num-timesteps", type=int, default=None, help="Total training timesteps")
     parser.add_argument("--episode-length", type=int, default=None, help="Episode length (uses env default if not set)")
@@ -172,13 +174,22 @@ def main():
                 **vars(args),
             },
             name=run_name,
-            save_code=True,
+            save_code=False,
         )
-        wandb.save("../mujoco_playground/_src/robco/xmls/robco_arm.xml")
     
     # Create environment
     env = registry.load(args.env_name, config=env_cfg)
     eval_env = registry.load(args.env_name, config=env_cfg)
+
+    # Save the training script, environment source, and XML to WandB
+    if args.track:
+        files_to_save = [
+            os.path.abspath(__file__),
+            os.path.abspath(inspect.getfile(env.__class__)),
+            os.path.abspath(str(env.xml_path)),
+        ]
+        for file_path in files_to_save:
+            wandb.save(file_path, base_path=os.path.dirname(file_path), policy="now")
     
     print(f"\nObservation size: {env.observation_size}")
     print(f"Action size: {env.action_size}")
@@ -190,7 +201,7 @@ def main():
     def progress_fn(num_steps, metrics):
         """Progress callback for logging during training."""
         times.append(time.monotonic())
-        elapsed = times[-1] - times[0]
+        elapsed = times[-1] - times[1] if len(times) > 1 else times[-1] - times[0] # Ignores initial JIT compilation time
         sps = num_steps / elapsed if elapsed > 0 else 0
         
         # Store metrics
@@ -202,7 +213,7 @@ def main():
         print(f"Step {num_steps:>8} | "
               f"Reward: {eval_reward:>8.2f} ± {eval_reward_std:.2f} | "
               f"SPS: {sps:>6.0f} | "
-              f"Time: {elapsed:>6.1f}s")
+              f"Time: {elapsed:>6.1f}s / {elapsed/60:.1f}m")
         
         # Log detailed metrics
         if args.track:
@@ -265,7 +276,7 @@ def main():
     
     print(f"\n{'=' * 60}")
     print(f"Training complete!")
-    print(f"Total training time: {training_time:.1f}s")
+    print(f"Total training time: {training_time:.1f}s / {training_time/60:.1f}m")
     print(f"Final eval reward: {metrics.get('eval/episode_reward', 0):.2f}")
     print(f"{'=' * 60}\n")
     
@@ -280,15 +291,18 @@ def main():
     if args.num_videos > 0:
         print(f"\nGenerating {args.num_videos} evaluation videos...")
         
-        inference_fn = make_inference_fn(params, deterministic=True)
-        jit_inference_fn = jax.jit(inference_fn)
-        jit_reset = jax.jit(eval_env.reset)
-        jit_step = jax.jit(eval_env.step)
-        
+
         for video_idx in range(args.num_videos):
             print(f"  Recording video {video_idx + 1}/{args.num_videos}...")
             
             rng = jax.random.PRNGKey(args.seed + video_idx)
+
+            # Re-create JIT functions for video generation
+            jit_reset = jax.jit(eval_env.reset)
+            jit_step = jax.jit(eval_env.step)
+            inference_fn = make_inference_fn(params, deterministic=True)
+            jit_inference_fn = jax.jit(inference_fn)
+
             state = jit_reset(rng)
             
             rollout = [state]
@@ -311,13 +325,12 @@ def main():
             fps = 1.0 / eval_env.dt / render_every
             
             mj_model = eval_env.mj_model
-            mj_data = mujoco.MjData(mj_model)
             renderer = mujoco.Renderer(mj_model, height=480, width=640)
             
             frames = []
             for state in rollout[::render_every]:
-                mj_data.qpos[:] = np.array(state.data.qpos)
-                mj_data.qvel[:] = np.array(state.data.qvel)
+                # Use mjx.get_data to get a fresh MjData object with the full state for rendering.
+                mj_data = mjx.get_data(mj_model, state.data)
                 mujoco.mj_forward(mj_model, mj_data)
                 renderer.update_scene(mj_data)
                 frames.append(renderer.render())
