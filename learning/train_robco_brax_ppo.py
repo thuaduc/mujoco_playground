@@ -1,28 +1,27 @@
-"""Brax SAC training script for RobcoArm environment.
+"""Brax PPO training script for RobcoArm environment.
 
-This script uses Brax's fully JAX-based SAC implementation for much faster training
+This script uses Brax's fully JAX-based PPO implementation for much faster training
 with vectorized environments. It provides consistent logging with the PyTorch version.
 
 Usage:
     # Train with wandb logging (requires wandb login)
-    python learning/train_robco_brax_sac.py --track
+    python learning/train_robco_brax_ppo.py --track
     
     # Train without wandb logging
-    python learning/train_robco_brax_sac.py
+    python learning/train_robco_brax_ppo.py
     
     # Train for more steps with more environments
-    python learning/train_robco_brax_sac.py --num-timesteps 1000000 --num-envs 256
+    python learning/train_robco_brax_ppo.py --num-timesteps 1000000 --num-envs 512
 """
 import os
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 os.environ["MUJOCO_GL"] = "egl"
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 import argparse
 import datetime
 import functools
 import json
-import inspect
 import time
 import uuid
 
@@ -30,10 +29,9 @@ import jax
 import jax.numpy as jp
 import mediapy as media
 import mujoco
-from mujoco import mjx
 import numpy as np
-from brax.training.agents.sac import train as sac
-from brax.training.agents.sac import networks as sac_networks
+from brax.training.agents.ppo import train as ppo
+from brax.training.agents.ppo import networks as ppo_networks
 from etils import epath
 from flax import serialization
 from ml_collections import config_dict
@@ -52,43 +50,41 @@ import wandb
 # Configuration
 # ============================================================================
 
-def get_sac_config(env_name: str) -> config_dict.ConfigDict:
-    """Returns SAC config tuned for the specified environment."""
-    config = robco_params.robco_sac_config(env_name)
-    
-    return config
+def get_ppo_config(env_name: str) -> config_dict.ConfigDict:
+    """Returns PPO config tuned for RobcoArm."""
+    return robco_params.robco_ppo_config(env_name)
 
 
 def parse_args():
     """Parse command line arguments."""
-    parser = argparse.ArgumentParser(description="Train RobcoArm with Brax SAC")
-    parser.add_argument("--exp-name", type=str, default="robco_brax_sac", help="Experiment name")
+    parser = argparse.ArgumentParser(description="Train RobcoArm with Brax PPO")
+    parser.add_argument("--exp-name", type=str, default="robco_brax_ppo", help="Experiment name")
     parser.add_argument("--seed", type=int, default=1, help="Random seed")
     parser.add_argument("--track", action="store_true", help="Track with wandb")
     parser.add_argument("--wandb-project-name", type=str, default="mujoco_playground", help="Wandb project name")
     parser.add_argument("--wandb-entity", type=str, default="thuaduc24042001-technical-university-of-munich", help="Wandb entity")
     
-    # Environment / Task selection
-    parser.add_argument("--env-name", type=str, default="RobcoArm", 
-                        choices=["RobcoArmPosition", "RobcoArmTorque", "RobcoPositionHard", "RobcoArmBox"],
-                        help="Environment/task name (RobcoArm: fixed target, RobcoHard: randomized target)")
-    parser.add_argument("--num-timesteps", type=int, default=None, help="Total training timesteps")
+    # Environment
+    parser.add_argument("--env-name", type=str, default="RobcoArm", help="Environment name")
+    parser.add_argument("--num-timesteps", type=int, default=100_000, help="Total training timesteps")
     parser.add_argument("--episode-length", type=int, default=None, help="Episode length (uses env default if not set)")
     
-    # SAC hyperparameters
-    parser.add_argument("--num-envs", type=int, default=128, help="Number of parallel environments")
-    parser.add_argument("--num-eval-envs", type=int, default=32, help="Number of eval environments")
-    parser.add_argument("--batch-size", type=int, default=256, help="Batch size")
-    parser.add_argument("--learning-rate", type=float, default=1e-3, help="Learning rate")
-    parser.add_argument("--discounting", type=float, default=1.00, help="Discount factor (gamma)")
+    # PPO hyperparameters
+    parser.add_argument("--num-envs", type=int, default=256, help="Number of parallel environments")
+    parser.add_argument("--num-eval-envs", type=int, default=64, help="Number of eval environments")
+    parser.add_argument("--unroll-length", type=int, default=20, help="Unroll length (trajectory length)")
+    parser.add_argument("--num-minibatches", type=int, default=32, help="Number of minibatches")
+    parser.add_argument("--num-updates-per-batch", type=int, default=4, help="Number of gradient updates per batch")
+    parser.add_argument("--learning-rate", type=float, default=3e-4, help="Learning rate")
+    parser.add_argument("--discounting", type=float, default=0.97, help="Discount factor (gamma)")
     parser.add_argument("--reward-scaling", type=float, default=1.0, help="Reward scaling")
-    parser.add_argument("--grad-updates-per-step", type=int, default=8, help="Gradient updates per env step")
-    parser.add_argument("--max-replay-size", type=int, default=100_000, help="Maximum replay buffer size")
-    parser.add_argument("--min-replay-size", type=int, default=1_000, help="Minimum replay size before training")
-    parser.add_argument("--normalize-observations", action="store_true", default=False, help="Normalize observations")
+    parser.add_argument("--entropy-cost", type=float, default=1e-2, help="Entropy cost coefficient")
+    parser.add_argument("--gae-lambda", type=float, default=0.95, help="GAE lambda")
+    parser.add_argument("--normalize-observations", action="store_true", default=True, help="Normalize observations")
+    parser.add_argument("--normalize-advantage", action="store_true", default=True, help="Normalize advantage")
     
     # Logging
-    parser.add_argument("--num-evals", type=int, default=50, help="Number of evaluations during training")
+    parser.add_argument("--num-evals", type=int, default=100, help="Number of evaluations during training")
     parser.add_argument("--num-videos", type=int, default=1, help="Number of videos to record after training")
     parser.add_argument("--save-checkpoint", action="store_true", default=True, help="Save checkpoints")
     
@@ -101,45 +97,47 @@ def main():
     # Generate unique run name
     uid = uuid.uuid4().hex[:6]
     timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    run_name = f"{args.exp_name}_{args.env_name.lower()}_{args.seed}_{uid}"
+    run_name = f"{args.exp_name}_{args.seed}_{uid}"
     
     print(f"=" * 60)
-    print(f"Brax SAC Training")
-    print(f"Task: {args.env_name}")
+    print(f"Brax PPO Training for {args.env_name}")
     print(f"Run name: {run_name}")
     print(f"=" * 60)
     
     # Load environment config
     env_cfg = registry.get_default_config(args.env_name)
-    sac_params = get_sac_config(args.env_name)
+    ppo_params = get_ppo_config(args.env_name)
     
-    # Override SAC params with command line args
+    # Override PPO params with command line args
     if args.num_timesteps:
-        sac_params.num_timesteps = args.num_timesteps
+        ppo_params.num_timesteps = args.num_timesteps
     if args.episode_length:
-        sac_params.episode_length = args.episode_length
+        ppo_params.episode_length = args.episode_length
     if args.num_envs:
-        sac_params.num_envs = args.num_envs
-    if args.batch_size:
-        sac_params.batch_size = args.batch_size
+        ppo_params.num_envs = args.num_envs
+    if args.unroll_length:
+        ppo_params.unroll_length = args.unroll_length
+    if args.num_minibatches:
+        ppo_params.num_minibatches = args.num_minibatches
+    if args.num_updates_per_batch:
+        ppo_params.num_updates_per_batch = args.num_updates_per_batch
     if args.learning_rate:
-        sac_params.learning_rate = args.learning_rate
+        ppo_params.learning_rate = args.learning_rate
     if args.discounting:
-        sac_params.discounting = args.discounting
+        ppo_params.discounting = args.discounting
     if args.reward_scaling:
-        sac_params.reward_scaling = args.reward_scaling
-    if args.grad_updates_per_step:
-        sac_params.grad_updates_per_step = args.grad_updates_per_step
-    if args.max_replay_size:
-        sac_params.max_replay_size = args.max_replay_size
-    if args.min_replay_size:
-        sac_params.min_replay_size = args.min_replay_size
+        ppo_params.reward_scaling = args.reward_scaling
+    if args.entropy_cost:
+        ppo_params.entropy_cost = args.entropy_cost
+    if args.gae_lambda:
+        ppo_params.gae_lambda = args.gae_lambda
     if args.num_evals:
-        sac_params.num_evals = args.num_evals
-    sac_params.normalize_observations = args.normalize_observations
+        ppo_params.num_evals = args.num_evals
+    ppo_params.normalize_observations = args.normalize_observations
+    ppo_params.normalize_advantage = args.normalize_advantage
     
     print(f"\nEnvironment Config:\n{env_cfg}")
-    print(f"\nSAC Training Parameters:\n{sac_params}")
+    print(f"\nPPO Training Parameters:\n{ppo_params}")
     
     # Set up logging directory
     logdir = epath.Path("logs").resolve() / run_name
@@ -155,52 +153,41 @@ def main():
     with open(checkpoint_dir / "config.json", "w", encoding="utf-8") as fp:
         config_to_save = {
             "env_config": env_cfg.to_dict(),
-            "sac_params": dict(sac_params),
+            "ppo_params": dict(ppo_params),
             "args": vars(args),
         }
         json.dump(config_to_save, fp, indent=4, default=str)
     
     # Initialize wandb
     if args.track:
-        if not WANDB_AVAILABLE:
-            raise ImportError("wandb is required for tracking. Install with: pip install wandb")
         wandb.init(
             project=args.wandb_project_name,
             entity=args.wandb_entity,
             config={
                 "env_config": env_cfg.to_dict(),
-                "sac_params": dict(sac_params),
+                "ppo_params": dict(ppo_params),
                 **vars(args),
             },
             name=run_name,
-            save_code=False,
+            save_code=True,
         )
     
     # Create environment
     env = registry.load(args.env_name, config=env_cfg)
     eval_env = registry.load(args.env_name, config=env_cfg)
-
-    # Save the training script, environment source, and XML to WandB
-    if args.track:
-        files_to_save = [
-            os.path.abspath(__file__),
-            os.path.abspath(inspect.getfile(env.__class__)),
-            os.path.abspath(str(env.xml_path)),
-        ]
-        for file_path in files_to_save:
-            wandb.save(file_path, base_path=os.path.dirname(file_path), policy="now")
     
     print(f"\nObservation size: {env.observation_size}")
     print(f"Action size: {env.action_size}")
     
     # Training metrics tracking
     times = [time.monotonic()]
+    training_metrics_history = []
     eval_metrics_history = []
     
     def progress_fn(num_steps, metrics):
         """Progress callback for logging during training."""
         times.append(time.monotonic())
-        elapsed = times[-1] - times[1] if len(times) > 1 else times[-1] - times[0]
+        elapsed = times[-1] - times[0]
         sps = num_steps / elapsed if elapsed > 0 else 0
         
         # Store metrics
@@ -209,13 +196,16 @@ def main():
         # Print progress
         eval_reward = metrics.get("eval/episode_reward", 0)
         eval_reward_std = metrics.get("eval/episode_reward_std", 0)
+        loss = metrics.get("loss/total", 0)
         print(f"Step {num_steps:>8} | "
               f"Reward: {eval_reward:>8.2f} ± {eval_reward_std:.2f} | "
+              f"Loss: {loss:>8.4f} | "
               f"SPS: {sps:>6.0f} | "
-              f"Time: {elapsed:>6.1f}s / {elapsed/60:.1f}m")
+              f"Time: {elapsed:>6.1f}s")
         
         # Log detailed metrics
         if args.track:
+            print(f"Logging metrics at step {num_steps}")
             log_dict = {
                 "global_step": num_steps,
                 "episode/return": eval_reward,
@@ -229,6 +219,8 @@ def main():
                 # Convert to proper logging keys
                 if key.startswith("eval/"):
                     log_dict[key] = value
+                elif key.startswith("loss/"):
+                    log_dict[key] = value
                 elif key.startswith("training/"):
                     log_dict[key] = value
                 else:
@@ -241,17 +233,17 @@ def main():
     
     # Set up network factory
     network_factory = functools.partial(
-        sac_networks.make_sac_networks,
-        **sac_params.network_factory,
+        ppo_networks.make_ppo_networks,
+        policy_hidden_layer_sizes=(256, 256, 128),
+        value_hidden_layer_sizes=(256, 256, 128),
     )
     
     # Prepare training parameters
-    training_params = dict(sac_params)
-    del training_params["network_factory"]
+    training_params = dict(ppo_params)
     
     # Create the train function
     train_fn = functools.partial(
-        sac.train,
+        ppo.train,
         **training_params,
         network_factory=network_factory,
         seed=args.seed,
@@ -274,7 +266,7 @@ def main():
     
     print(f"\n{'=' * 60}")
     print(f"Training complete!")
-    print(f"Total training time: {training_time:.1f}s / {training_time/60:.1f}m")
+    print(f"Total training time: {training_time:.1f}s")
     print(f"Final eval reward: {metrics.get('eval/episode_reward', 0):.2f}")
     print(f"{'=' * 60}\n")
     
@@ -303,7 +295,7 @@ def main():
             rollout = [state]
             total_reward = 0.0
             
-            for step in range(sac_params.episode_length):
+            for step in range(ppo_params.episode_length):
                 act_rng, rng = jax.random.split(rng)
                 action, _ = jit_inference_fn(state.obs, act_rng)
                 state = jit_step(state, action)

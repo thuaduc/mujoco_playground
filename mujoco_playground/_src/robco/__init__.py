@@ -22,20 +22,24 @@ from ml_collections import config_dict
 from mujoco import mjx
 
 from mujoco_playground._src import mjx_env
-from mujoco_playground._src.robco.robco_arm import RobcoArm, default_config
-from mujoco_playground._src.robco.robco_arm_box import (
-    RobcoArmBox,
-    default_config as default_config_box,
-)
+from mujoco_playground._src.robco.robco_arm_position import RobcoArmPosition, default_config
+from mujoco_playground._src.robco.robco_position_hard import RobcoPositionHard, default_config as default_config_hard
+from mujoco_playground._src.robco.robco_arm_torque import RobcoArmTorque, default_config as default_config_torque
+from mujoco_playground._src.robco.robco_arm_box import RobcoArmBox, default_config as default_config_box
+
 
 
 _envs = {
-    "RobcoArm": RobcoArm,
+    "RobcoArmPosition": RobcoArmPosition,
+    "RobcoArmTorque": RobcoArmTorque,
+    "RobcoPositionHard": RobcoPositionHard,
     "RobcoArmBox": RobcoArmBox,
 }
 
 _cfgs = {
-    "RobcoArm": default_config,
+    "RobcoArmPosition": default_config,
+    "RobcoPositionHard": default_config_hard,
+    "RobcoArmTorque": default_config_torque,
     "RobcoArmBox": default_config_box,
 }
 

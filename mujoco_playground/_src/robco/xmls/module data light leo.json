@@ -1,0 +1,508 @@
+{
+    "combined_module_data": [
+        {
+            "module_name": "D86-B",
+            "module_type": "Drive",
+            "kinematics": {
+                "proximal_transformation": [
+                    [
+                        0,
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        1,
+                        0,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0,
+                        0.064
+                    ],
+                    [
+                        0,
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "distal_transformation": [
+                    [
+                        0,
+                        -1,
+                        0,
+                        0
+                    ],
+                    [
+                        1,
+                        0,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1,
+                        0.0552
+                    ],
+                    [
+                        0,
+                        0,
+                        0,
+                        1
+                    ]
+                ]
+            },
+            "dynamics": {
+                "proximal_mass": 1.777,
+                "proximal_inertia": [
+                    [
+                        0.00858500,
+                        0.00002909,
+                        0.00024985
+                    ],
+                    [
+                        0.00002909,
+                        0.00939383,
+                        -0.00002805
+                    ],
+                    [
+                        0.00024985,
+                        -0.00002805,
+                        0.00272493
+                    ]
+                ],
+                "proximal_center_of_mass": [
+                    -0.00188062,
+                    0.00025219,
+                    0.05833350
+                ],
+                "distal_mass": 0.177,
+                "distal_inertia": [
+                    [
+                        0.00035144,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        0.00035151,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        0.00012592
+                    ]
+                ],
+                "distal_center_of_mass": [
+                    0,
+                    0,
+                    -0.02541420
+                ],
+                "motor_inertia": 6.473e-5
+            },
+            "friction_parameters": {
+                "friction_coulomb": 2,
+                "friction_viscous": 2
+            },
+            "module_properties": {
+                "rated_torque": 44.5,
+                "peak_torque": 104,
+                "max_velocity": 5.60,
+                "q_upper_hard": 6.2832,
+                "q_lower_hard": -6.2832,
+                "q_safety_margin": 1.5708,
+                "rated_current": 7.632,
+                "peak_current": 24.70,
+                "power": 462
+            },
+            "gears": {
+                "name": "harmonic-drive SHG-17-100",
+                "ratio": 101
+            },
+            "encoder": {
+                "motor_resolution": 524288,
+                "link_resolution": 524288
+            }
+        },
+        {
+            "module_name": "D116-C",
+            "module_type": "Drive",
+            "kinematics": {
+                "proximal_transformation": [
+                    [
+                        0,
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        1,
+                        0,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0,
+                        0.082
+                    ],
+                    [
+                        0,
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "distal_transformation": [
+                    [
+                        0,
+                        -1,
+                        0,
+                        0
+                    ],
+                    [
+                        1,
+                        0,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1,
+                        0.0702
+                    ],
+                    [
+                        0,
+                        0,
+                        0,
+                        1
+                    ]
+                ]
+            },
+            "dynamics": {
+                "proximal_mass": 3.594,
+                "proximal_inertia": [
+                    [
+                        0.0280533,
+                        0.0000675,
+                        -0.0020303
+                    ],
+                    [
+                        0.0000675,
+                        0.0290088,
+                        -0.0000926
+                    ],
+                    [
+                        -0.0020303,
+                        -0.0000926,
+                        0.0079424
+                    ]
+                ],
+                "proximal_center_of_mass": [
+                    0.0072024,
+                    0.0003068,
+                    0.0734292
+                ],
+                "distal_mass": 0.34514885,
+                "distal_inertia": [
+                    [
+                        0.00120813,
+                        -0.00000070,
+                        -0.00000009
+                    ],
+                    [
+                        -0.00000070,
+                        0.00120737,
+                        0.00000008
+                    ],
+                    [
+                        -0.00000009,
+                        0.00000008,
+                        0.00039974
+                    ]
+                ],
+                "distal_center_of_mass": [
+                    0.00014389,
+                    -0.00009101,
+                    -0.03137476
+                ],
+                "motor_inertia": 25.867e-5
+            },
+            "friction_parameters": {
+                "friction_coulomb": 4,
+                "friction_viscous": 4
+            },
+            "module_properties": {
+                "rated_torque": 116.7,
+                "peak_torque": 246,
+                "max_velocity": 4.5,
+                "q_upper_hard": 6.2832,
+                "q_lower_hard": -6.2832,
+                "q_safety_margin": 1.5708,
+                "rated_current": 15.529,
+                "peak_current": 59.10,
+                "power": 817
+            },
+            "gears": {
+                "name": "harmonic-drive SHG-25-100",
+                "ratio": 101
+            },
+            "encoder": {
+                "motor_resolution": 1048576,
+                "link_resolution": 1048576
+            }
+        },
+        {
+            "module_name": "L86-86-440-B",
+            "module_type": "Link",
+            "kinematics": {
+                "proximal_transformation": [
+                    [
+                        0,
+                        0,
+                        1,
+                        0.440
+                    ],
+                    [
+                        0,
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        -1,
+                        0,
+                        0,
+                        0.053
+                    ],
+                    [
+                        0,
+                        0,
+                        0,
+                        1
+                    ]
+                ]
+            },
+            "dynamics": {
+                "proximal_mass": 1.310,
+                "proximal_inertia": [
+                    [
+                        0.0045009,
+                        0,
+                        -0.0130950
+                    ],
+                    [
+                        0,
+                        0.0850522,
+                        0
+                    ],
+                    [
+                        -0.0130950,
+                        0,
+                        0.0820178
+                    ]
+                ],
+                "proximal_center_of_mass": [
+                    0.1885007,
+                    0,
+                    0.0476052
+                ]
+            }
+        },
+        {
+            "module_name": "L116-86-500-B",
+            "module_type": "Link",
+            "kinematics": {
+                "proximal_transformation": [
+                    [
+                        0,
+                        0,
+                        1,
+                        0.500
+                    ],
+                    [
+                        0,
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        -1,
+                        0,
+                        0,
+                        0.068
+                    ],
+                    [
+                        0,
+                        0,
+                        0,
+                        1
+                    ]
+                ]
+            },
+            "dynamics": {
+                "proximal_mass": 2.2800848,
+                "proximal_inertia": [
+                    [
+                        0.0127649,
+                        0,
+                        -0.0328764
+                    ],
+                    [
+                        0,
+                        0.1922432,
+                        0
+                    ],
+                    [
+                        -0.0328764,
+                        0,
+                        0.1839478
+                    ]
+                ],
+                "proximal_center_of_mass": [
+                    0.2118139,
+                    0,
+                    0.0592073
+                ]
+            }
+        },
+        {
+            "module_name": "BD116-C",
+            "module_type": "BaseDrive",
+            "kinematics": {
+                "proximal_transformation": [
+                    [
+                        1,
+                        0,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1,
+                        0.1757
+                    ],
+                    [
+                        0,
+                        0,
+                        0,
+                        1
+                    ]
+                ],
+                "distal_transformation": [
+                    [
+                        1,
+                        0,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        1,
+                        0,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        0,
+                        0,
+                        1
+                    ]
+                ]
+            },
+            "dynamics": {
+                "proximal_mass": 7.975,
+                "proximal_inertia": [
+                    [
+                        0.07110528,
+                        0.00003110,
+                        -0.00033000
+                    ],
+                    [
+                        0.00003110,
+                        0.07073333,
+                        0.00007762
+                    ],
+                    [
+                        -0.00033000,
+                        0.00007762,
+                        0.03229976
+                    ]
+                ],
+                "proximal_center_of_mass": [
+                    0.0,
+                    0.0,
+                    0.07
+                ],
+                "distal_mass": 0.34514885,
+                "distal_inertia": [
+                    [
+                        0.00120813,
+                        -0.00000070,
+                        -0.00000009
+                    ],
+                    [
+                        -0.00000070,
+                        0.00120737,
+                        0.00000008
+                    ],
+                    [
+                        -0.00000009,
+                        0.00000008,
+                        0.00039974
+                    ]
+                ],
+                "distal_center_of_mass": [
+                    0.00014389,
+                    -0.00009101,
+                    -0.03137476
+                ],
+                "motor_inertia": 25.867e-5
+            },
+            "friction_parameters": {
+                "friction_coulomb": 4,
+                "friction_viscous": 4
+            },
+            "module_properties": {
+                "rated_torque": 116.7,
+                "peak_torque": 246,
+                "max_velocity": 4.5,
+                "q_upper_hard": 6.2832,
+                "q_lower_hard": -6.2832,
+                "q_safety_margin": 1.5708,
+                "rated_current": 15.529,
+                "peak_current": 59.10,
+                "power": 817
+            },
+            "gears": {
+                "name": "harmonic-drive SHG-25-100",
+                "ratio": 101
+            },
+            "encoder": {
+                "motor_resolution": 1048576,
+                "link_resolution": 1048576
+            }
+        }
+    ]
+}
