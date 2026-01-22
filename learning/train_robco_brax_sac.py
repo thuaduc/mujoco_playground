@@ -22,6 +22,7 @@ import argparse
 import datetime
 import functools
 import json
+import inspect
 import time
 import uuid
 
@@ -29,6 +30,7 @@ import jax
 import jax.numpy as jp
 import mediapy as media
 import mujoco
+from mujoco import mjx
 import numpy as np
 from brax.training.agents.sac import train as sac
 from brax.training.agents.sac import networks as sac_networks
@@ -36,7 +38,6 @@ from etils import epath
 from flax import serialization
 from ml_collections import config_dict
 from brax.io import model
-
 
 from mujoco_playground import registry
 from mujoco_playground import wrapper
@@ -69,7 +70,7 @@ def parse_args():
     
     # Environment / Task selection
     parser.add_argument("--env-name", type=str, default="RobcoArm", 
-                        choices=["RobcoArmPosition", "RobcoArmTorque", "RobcoPositionHard"],
+                        choices=["RobcoArmPosition", "RobcoArmTorque", "RobcoPositionHard", "RobcoArmBox"],
                         help="Environment/task name (RobcoArm: fixed target, RobcoHard: randomized target)")
     parser.add_argument("--num-timesteps", type=int, default=None, help="Total training timesteps")
     parser.add_argument("--episode-length", type=int, default=None, help="Episode length (uses env default if not set)")
@@ -81,8 +82,8 @@ def parse_args():
     parser.add_argument("--learning-rate", type=float, default=1e-3, help="Learning rate")
     parser.add_argument("--discounting", type=float, default=1.00, help="Discount factor (gamma)")
     parser.add_argument("--reward-scaling", type=float, default=1.0, help="Reward scaling")
-    parser.add_argument("--grad-updates-per-step", type=int, default=4, help="Gradient updates per env step")
-    parser.add_argument("--max-replay-size", type=int, default=10_000, help="Maximum replay buffer size")
+    parser.add_argument("--grad-updates-per-step", type=int, default=8, help="Gradient updates per env step")
+    parser.add_argument("--max-replay-size", type=int, default=100_000, help="Maximum replay buffer size")
     parser.add_argument("--min-replay-size", type=int, default=1_000, help="Minimum replay size before training")
     parser.add_argument("--normalize-observations", action="store_true", default=False, help="Normalize observations")
     
@@ -172,13 +173,22 @@ def main():
                 **vars(args),
             },
             name=run_name,
-            save_code=True,
+            save_code=False,
         )
-        wandb.save("../mujoco_playground/_src/robco/xmls/robco_arm.xml")
     
     # Create environment
     env = registry.load(args.env_name, config=env_cfg)
     eval_env = registry.load(args.env_name, config=env_cfg)
+
+    # Save the training script, environment source, and XML to WandB
+    if args.track:
+        files_to_save = [
+            os.path.abspath(__file__),
+            os.path.abspath(inspect.getfile(env.__class__)),
+            os.path.abspath(str(env.xml_path)),
+        ]
+        for file_path in files_to_save:
+            wandb.save(file_path, base_path=os.path.dirname(file_path), policy="now")
     
     print(f"\nObservation size: {env.observation_size}")
     print(f"Action size: {env.action_size}")
@@ -190,7 +200,7 @@ def main():
     def progress_fn(num_steps, metrics):
         """Progress callback for logging during training."""
         times.append(time.monotonic())
-        elapsed = times[-1] - times[0]
+        elapsed = times[-1] - times[1] if len(times) > 1 else times[-1] - times[0]
         sps = num_steps / elapsed if elapsed > 0 else 0
         
         # Store metrics
@@ -202,11 +212,10 @@ def main():
         print(f"Step {num_steps:>8} | "
               f"Reward: {eval_reward:>8.2f} ± {eval_reward_std:.2f} | "
               f"SPS: {sps:>6.0f} | "
-              f"Time: {elapsed:>6.1f}s")
+              f"Time: {elapsed:>6.1f}s / {elapsed/60:.1f}m")
         
         # Log detailed metrics
         if args.track:
-            print(f"Logging metrics at step {num_steps}")
             log_dict = {
                 "global_step": num_steps,
                 "episode/return": eval_reward,
@@ -265,7 +274,7 @@ def main():
     
     print(f"\n{'=' * 60}")
     print(f"Training complete!")
-    print(f"Total training time: {training_time:.1f}s")
+    print(f"Total training time: {training_time:.1f}s / {training_time/60:.1f}m")
     print(f"Final eval reward: {metrics.get('eval/episode_reward', 0):.2f}")
     print(f"{'=' * 60}\n")
     
