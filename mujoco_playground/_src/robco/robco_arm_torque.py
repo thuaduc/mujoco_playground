@@ -7,27 +7,29 @@ from mujoco import mjx
 
 from mujoco_playground._src import mjx_env
 from mujoco_playground._src.robco.base import RobcoArmBase
-
+import time
 
 def default_config() -> config_dict.ConfigDict:
   """Default configuration for torque-controlled RobcoArm environments."""
   return config_dict.create(
-      ctrl_dt=0.05,
-      sim_dt=0.005,
-      episode_length=150,
+      ctrl_dt=0.01,
+      sim_dt=0.001,
+      episode_length=300,
       action_repeat=1,
       vision=False,
       impl="jax",
-      action_scale=0.1,
+      action_scale=0.004,
       nconmax=4096,
       njmax=128,
       success_distance_threshold=0.05,
+      action_chunk_size=1,
       reward_config=config_dict.create(
           scales=config_dict.create(
               end_effector_target=1,
               ground_collision=0.5,
               self_collision=0.5,
-              energy=0.0001,
+              energy=0.0,
+              action_rate=1,
           ),
       ),
   )
@@ -81,7 +83,7 @@ class RobcoArmTorque(RobcoArmBase):
     # forward to compute derived quantities
     data = mjx.forward(self._mjx_model, data)
 
-    rng, rng_obs = jax.random.split(rng)
+    rng, rng_obs = jax.random.split(jax.random.PRNGKey(int(time.time())))
     obs = self._get_obs(data, rng_obs)
 
     # metrics initialized as plain floats (or jax arrays if you prefer)
@@ -89,6 +91,7 @@ class RobcoArmTorque(RobcoArmBase):
     info = {
         "rng": rng,
         "last_act": jp.zeros(self._mjx_model.nu),
+        "target_reached": jp.array(0.0),
     }
 
     reward = jp.array(0.0)
@@ -104,10 +107,13 @@ class RobcoArmTorque(RobcoArmBase):
     )
 
   def step(self, state: mjx_env.State, action: jax.Array) -> mjx_env.State:
-    """Step the environment (jittable)."""
-    # scale action (kept as JAX array)
-    action = action * jp.array(self._config.action_scale)
-
+    """Step the environment (jittable).
+    
+    Args:
+      state: Current environment state
+      action: If chunk_size=1, shape (nu,). If chunk_size>1, shape (chunk_size, nu) when chunk_index >= chunk_size,
+              otherwise can be dummy (will use stored chunk).
+    """    
     data = mjx_env.step(
         self._mjx_model, state.data, action, n_substeps=self.n_substeps
     )
@@ -115,7 +121,14 @@ class RobcoArmTorque(RobcoArmBase):
     rng, rng_obs = jax.random.split(state.info["rng"])
     obs = self._get_obs(data, rng_obs)
 
-    raw_rewards = self._get_reward(data)
+    # check if target is reached
+    ee_pos = self.get_end_effector_position(data)
+    target_pos = data.xpos[self._target_body_id]
+    distance = jp.linalg.norm(ee_pos - target_pos)
+    target_reached_now = (distance < jp.array(self._config.success_distance_threshold)).astype(jp.float32)
+    target_already_reached = state.info["target_reached"]
+
+    raw_rewards = self._get_reward(data, state.info, distance, target_reached_now, target_already_reached)
 
     # apply reward scales (keep as jax arrays)
     rewards = {
@@ -126,11 +139,11 @@ class RobcoArmTorque(RobcoArmBase):
     reward = jp.clip(sum(rewards.values()), -1e4, 1e4)
 
     # compute termination condition in JAX
-    # ee_pos = self.get_end_effector_position(data)
-    # target_pos = data.xpos[self._target_body_id]
-    # distance = jp.linalg.norm(ee_pos - target_pos)
     # done = (distance < jp.array(self._config.success_distance_threshold)).astype(jp.float32)
     done = jp.array(0.0)
+    
+    # update target_reached flag
+    new_target_reached = jp.maximum(target_already_reached, target_reached_now)
     
     # create new metrics dict (avoid in-place mutation)
     metrics = {**state.metrics, **raw_rewards}
@@ -141,7 +154,12 @@ class RobcoArmTorque(RobcoArmBase):
         reward=reward,
         done=done,
         metrics=metrics,
-        info={**state.info, "rng": rng},
+        info={
+            **state.info,
+            "rng": rng,
+            "target_reached": new_target_reached,
+            "last_act": action,
+        },
     )
 
   def _get_obs(self, data: mjx.Data, rng: jax.Array) -> jax.Array:
@@ -167,23 +185,24 @@ class RobcoArmTorque(RobcoArmBase):
     """Get target reaching point position."""
     return data.xpos[self._target_body_id]
 
-  def _get_reward(self, data: mjx.Data) -> Dict[str, jax.Array]:
+  def _get_reward(self, data: mjx.Data, info: dict, distance: jax.Array, target_reached_now: jax.Array, target_already_reached: jax.Array) -> Dict[str, jax.Array]:
     """Return raw (unscaled) reward components as JAX arrays."""
-    ee_pos = self.get_end_effector_position(data)
-    target_pos = data.xpos[self._target_body_id]
-    distance = jp.linalg.norm(ee_pos - target_pos)
-
     rewards = {
-        "end_effector_target": self._cost_end_effector_target(distance),
+        "end_effector_target": self._cost_end_effector_target(distance, target_reached_now, target_already_reached),
         "ground_collision": self._cost_ground_collision(data),
         "self_collision": self._cost_self_collision(data),
         "energy": self._cost_energy(data.qvel, data.qfrc_actuator),
+        "action_rate": self._cost_action_rate(data.ctrl, jp.zeros(data.ctrl.shape) if "last_act" not in info else info["last_act"]),
     }
     return rewards
 
-  def _cost_end_effector_target(self, distance: jax.Array) -> jax.Array:
-    """Cost (negative reward) for distance to target."""
-    return -distance
+  def _cost_end_effector_target(self, distance: jax.Array, target_reached_now: jax.Array, target_already_reached: jax.Array) -> jax.Array:
+    """Continuous distance penalty plus one-time bonus when target is reached."""
+    # Continuous negative distance reward
+    continuous_reward = -distance
+    # One-time bonus when target is reached for the first time
+    one_time_bonus = target_reached_now * (1.0 - target_already_reached) * 200.0
+    return continuous_reward + one_time_bonus
 
   def _cost_ground_collision(self, data: mjx.Data) -> jax.Array:
     ground_collision_vals = (
@@ -210,3 +229,9 @@ class RobcoArmTorque(RobcoArmBase):
   ) -> jax.Array:
     """Penalize energy consumption (negative)."""
     return -jp.sum(jp.abs(qvel) * jp.abs(qfrc_actuator))
+
+  def _cost_action_rate(
+      self, action: jax.Array, last_action: jax.Array
+  ) -> jax.Array:
+    """Penalize large changes in action (negative)."""
+    return -jp.sum(jp.abs(action - last_action))

@@ -1,12 +1,7 @@
 <mujoco model="robco">
   <compiler angle="radian"/>
 
-  <option timestep="0.002" integrator="implicitfast"/>
-
-  <default>
-    <joint damping="4.0" armature="0.026"/>
-    <general dyntype="none" biastype="affine"/>
-  </default>
+  <option timestep="0.005" integrator="implicitfast"/>
   
   <asset>
     <!-- Textures and materials for the ground plane -->
@@ -23,7 +18,7 @@
     <mesh name="C86_convdec" content_type="model/stl" file="assets/C86_convdec.stl"/>  
     <mesh name="D86-876.0001-H-proximal_convdec" content_type="model/stl" file="assets/D86-876.0001-H-proximal_convdec.stl"/> 
     <mesh name="D86-876.0001-H-distal_convdec" content_type="model/stl" file="assets/D86-876.0001-H-distal_convdec.stl"/> 
-    <mesh name="I86-400_convdec" content_type="model/stl" file="assets2/I86-400_convdec.stl"/> 
+    <mesh name="I86-400_convdec" content_type="model/stl" file="assets/I86-400_convdec.stl"/> 
   </asset>
 
   <worldbody>
@@ -56,13 +51,13 @@
         <geom pos="0.5 0 0.068" quat="0.707107 0 0.707107 0" type="mesh" mesh="D86-876.0001-H-proximal_convdec" contype="0" conaffinity="0"/> 
         <body name="joint2_distal" pos="0.564 0 0.0128" quat="0 1 0 0">
           <inertial pos="-0.0016138 0.00021641 0.047885" quat="0.719232 -0.0147998 -0.0123681 0.694502" mass="2.0708" diaginertia="0.0112523 0.0104514 0.00301799"/>
-          <joint name="joint2_joint" damping="2.0" pos="0 0 0" axis="0 0 1" range="-4.7124 4.7124"/>
+          <joint name="joint2_joint"  pos="0 0 0" axis="0 0 1" range="-4.7124 4.7124"/>
           <geom type="mesh" mesh="D86-876.0001-H-distal_convdec" contype="0" conaffinity="0"/>
           <geom type="mesh" mesh="C86_convdec" contype="0" conaffinity="0"/>
           <geom type="mesh" mesh="D86-876.0001-H-proximal_convdec" contype="0" conaffinity="0"/>
           <body name="joint3_distal" pos="0.0552 0 0.064" quat="0 0.707107 0 0.707107">
             <inertial pos="-0.00990896 -0.0127434 0.310235" quat="0.998596 -0.0505537 -0.0158118 0.00064432" mass="3.3876" diaginertia="0.186582 0.170909 0.020963"/>
-            <joint name="joint3_joint" damping="2.0" pos="0 0 0" axis="0 0 1" range="-4.7124 4.7124"/>
+            <joint name="joint3_joint"  pos="0 0 0" axis="0 0 1" range="-4.7124 4.7124"/>
             <geom type="mesh" mesh="D86-876.0001-H-distal_convdec" contype="0" conaffinity="0"/>
             <geom type="mesh" mesh="C86_convdec" contype="0" conaffinity="0"/>
             <geom type="mesh" mesh="I86-400_convdec" contype="0" conaffinity="0"/>
@@ -71,14 +66,14 @@
             <geom pos="0 0 0.4" quat="1 0 0 0" type="mesh" mesh="D86-876.0001-H-proximal_convdec" contype="0" conaffinity="0"/> 
             <body name="joint4_distal" pos="0.0552 0 0.464" quat="0 0.707107 0 0.707107">
               <inertial pos="-0.0016138 0.00021641 0.047885" quat="0.719232 -0.0147998 -0.0123681 0.694502" mass="2.0708" diaginertia="0.0112523 0.0104514 0.00301799"/>
-              <joint name="joint4_joint" damping="2.0" pos="0 0 0" axis="0 0 1" range="-4.7124 4.7124"/>
+              <joint name="joint4_joint"  pos="0 0 0" axis="0 0 1" range="-4.7124 4.7124"/>
               <geom type="mesh" mesh="D86-876.0001-H-distal_convdec" contype="0" conaffinity="0"/>
               <geom type="mesh" mesh="C86_convdec" contype="0" conaffinity="0"/>
               <geom type="mesh" mesh="D86-876.0001-H-proximal_convdec" contype="0" conaffinity="0"/> 
               <geom name="joint4_collision" type="box" size="0.1 0.08 0.14" pos="-0.02 0 -0.02" rgba="1 0 1 0.3" contype="1" conaffinity="1"/> <!-- magenta -->
               <body name="joint5_distal" pos="0.0552 0 0.064" quat="0 0.707107 0 0.707107">
                 <inertial pos="8.1887e-05 0.00021863 0.0169912" quat="0.996955 -0.00209442 0.00119539 -0.077939" mass="0.772831" diaginertia="0.00217087 0.00212511 0.000873867"/>
-                <joint name="joint5_joint" damping="2.0" pos="0 0 0" axis="0 0 1" range="-4.7124 4.7124"/>
+                <joint name="joint5_joint"  pos="0 0 0" axis="0 0 1" range="-4.7124 4.7124"/>
                 <geom type="mesh" mesh="D86-876.0001-H-distal_convdec" contype="0" conaffinity="0"/>
                 <geom type="mesh" mesh="C86_convdec" contype="0" conaffinity="0"/>
               </body>
@@ -99,13 +94,20 @@
   </sensor>
 
   <actuator>
-    <motor name="joint0_joint_ctrl" joint="joint0_joint" gear="150" ctrllimited="true" ctrlrange="-4.7124 4.7124"/>
-    <motor name="joint1_joint_ctrl" joint="joint1_joint" gear="250" ctrllimited="true" ctrlrange="-4.7124 4.7124"/>
-    <motor name="joint2_joint_ctrl" joint="joint2_joint" gear="150" ctrllimited="true" ctrlrange="-4.7124 4.7124"/>
+    <!-- <motor name="joint0_joint_ctrl" joint="joint0_joint" gear="246" ctrllimited="true" ctrlrange="-1 1"/>
+    <motor name="joint1_joint_ctrl" joint="joint1_joint" gear="246" ctrllimited="true" ctrlrange="-1 1"/>
+    <motor name="joint2_joint_ctrl" joint="joint2_joint" gear="104" ctrllimited="true" ctrlrange="-1 1"/>
 
-    <motor name="joint3_joint_ctrl" joint="joint3_joint" gear="60" ctrllimited="true" ctrlrange="-4.7124 4.7124"/>
-    <motor name="joint4_joint_ctrl" joint="joint4_joint" gear="60" ctrllimited="true" ctrlrange="-4.7124 4.7124"/>
+    <motor name="joint3_joint_ctrl" joint="joint3_joint" gear="104" ctrllimited="true" ctrlrange="-1 1"/>
+    <motor name="joint4_joint_ctrl" joint="joint4_joint" gear="104" ctrllimited="true" ctrlrange="-1 1"/>
 
-    <motor name="joint5_joint_ctrl" joint="joint5_joint" gear="20" ctrllimited="true" ctrlrange="-4.7124 4.7124"/>
+    <motor name="joint5_joint_ctrl" joint="joint5_joint" gear="104" ctrllimited="true" ctrlrange="-1 1"/> -->
+    
+    <motor name="joint0_joint_ctrl" joint="joint0_joint" gear="116" ctrllimited="true" ctrlrange="-1 1"/>
+    <motor name="joint1_joint_ctrl" joint="joint1_joint" gear="116" ctrllimited="true" ctrlrange="-1 1"/>
+    <motor name="joint2_joint_ctrl" joint="joint2_joint" gear="44" ctrllimited="true" ctrlrange="-1 1"/>
+    <motor name="joint3_joint_ctrl" joint="joint3_joint" gear="44" ctrllimited="true" ctrlrange="-1 1"/>
+    <motor name="joint4_joint_ctrl" joint="joint4_joint" gear="44" ctrllimited="true" ctrlrange="-1 1"/>
+    <motor name="joint5_joint_ctrl" joint="joint5_joint" gear="44" ctrllimited="true" ctrlrange="-1 1"/>
   </actuator>
 </mujoco>
