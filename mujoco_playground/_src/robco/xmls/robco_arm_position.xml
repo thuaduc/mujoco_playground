@@ -3,10 +3,6 @@
 
   <option timestep="0.002" integrator="implicitfast"/>
 
-  <default>
-    <joint damping="4.0" armature="0.026"/>
-    <general dyntype="none" biastype="affine"/>
-  </default>
   
   <asset>
     <!-- Textures and materials for the ground plane -->
@@ -23,7 +19,7 @@
     <mesh name="C86_convdec" content_type="model/stl" file="assets/C86_convdec.stl"/>  
     <mesh name="D86-876.0001-H-proximal_convdec" content_type="model/stl" file="assets/D86-876.0001-H-proximal_convdec.stl"/> 
     <mesh name="D86-876.0001-H-distal_convdec" content_type="model/stl" file="assets/D86-876.0001-H-distal_convdec.stl"/> 
-    <mesh name="I86-400_convdec" content_type="model/stl" file="assets2/I86-400_convdec.stl"/> 
+    <mesh name="I86-400_convdec" content_type="model/stl" file="assets/I86-400_convdec.stl"/> 
   </asset>
 
   <worldbody>
@@ -47,7 +43,7 @@
       <geom type="mesh" mesh="D116-876.0002-G-proximal_convdec" contype="0" conaffinity="0"/>
       <body name="joint1_distal" pos="0.0702 0 0.082" quat="0 0.707107 0 0.707107">
         <inertial pos="0.106613 0.185781 0.0844217" quat="0.230033 0.593444 -0.414361 0.650549" mass="4.74208" diaginertia="0.528787 0.386972 0.222957"/>
-        <joint name="joint1_joint" pos="0 0 0" axis="0 0 1" range="-4.7124 4.7124"/>
+        <joint name="joint1_joint" damping="2.0" pos="0 0 0" axis="0 0 1" range="-4.7124 4.7124"/>
         <geom type="mesh" mesh="D116-876.0002-G-distal_convdec" contype="0" conaffinity="0"/>
         <geom type="mesh" mesh="C116_convdec" contype="0" conaffinity="0"/>
         <geom type="mesh" mesh="L116-500_convdec" contype="0" conaffinity="0"/>

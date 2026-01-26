@@ -7,13 +7,13 @@ from mujoco import mjx
 
 from mujoco_playground._src import mjx_env
 from mujoco_playground._src.robco.base import RobcoArmBase
-
+import time
 
 def default_config() -> config_dict.ConfigDict:
   """Default configuration for basic RobcoArm environments."""
   return config_dict.create(
-      ctrl_dt=0.05,
-      sim_dt=0.005,
+      ctrl_dt=0.01,
+      sim_dt=0.001,
       episode_length=500,
       action_repeat=1,
       vision=False,
@@ -82,7 +82,7 @@ class RobcoArmPosition(RobcoArmBase):
 
     data = mjx.forward(self._mjx_model, data)
 
-    rng, rng_obs = jax.random.split(rng)
+    rng, rng_obs = jax.random.split(jax.random.PRNGKey(int(time.time())))
     obs = self._get_obs(data, rng_obs)
 
     # metrics initialized as plain floats (or jax arrays if you prefer)
@@ -165,11 +165,11 @@ class RobcoArmPosition(RobcoArmBase):
     # add random position to pos and vel. random uniform noise
     rng, rng_pos = jax.random.split(rng)
     joint_pos += jax.random.uniform(
-        rng_pos, shape=joint_pos.shape, minval=-0.001, maxval=0.001
+        rng_pos, shape=joint_pos.shape, minval=-0.0001, maxval=0.0001
     )
     rng, rng_vel = jax.random.split(rng)
     joint_vel += jax.random.uniform(
-        rng_vel, shape=joint_vel.shape, minval=-0.001, maxval=0.001
+        rng_vel, shape=joint_vel.shape, minval=-0.0001, maxval=0.0001
     )
     
     target_pos = self.get_reaching_point_position(data)
@@ -192,7 +192,7 @@ class RobcoArmPosition(RobcoArmBase):
         "end_effector_target": self._cost_end_effector_target(distance),
         "ground_collision": self._cost_ground_collision(data),
         "self_collision": self._cost_self_collision(data),
-        # "energy": self._cost_energy(data.qvel, data.qfrc_actuator),
+        "energy": self._cost_energy(data.qvel, data.qfrc_actuator),
         "action_rate": self._cost_action_rate(action, info["last_act"]),
     }
     return rewards
